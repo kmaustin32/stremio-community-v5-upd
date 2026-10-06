@@ -67,6 +67,9 @@ Get-ChildItem (Join-Path $cache 'ffmpeg') -Recurse -Filter 'LICENSE*' -File |
     Select-Object -First 1 | Copy-Item -Destination (Join-Path $mediaTools 'LICENSE-ffmpeg.txt') -Force
 Invoke-Checked $sevenZip @('x', (Join-Path $root 'utils/mpv/anime4k/anime4k-High-end.zip'),
     "-o$(Join-Path $root 'utils/mpv/anime4k/portable_config')", 'shaders/*', '-y')
+# FSR is supplied by the checksum-verified community installer, not Anime4K's archive.
+Copy-Item (Join-Path $cache 'upstream/portable_config/shaders/FSR.glsl') `
+    (Join-Path $root 'utils/mpv/anime4k/portable_config/shaders/FSR.glsl') -Force
 
 if (!$SkipImportLibrary) {
     $discordArchive = Join-Path $cache 'discord.zip'

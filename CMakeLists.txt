@@ -103,6 +103,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE STREMIO_DEFAULT_UPDATE_URL="$
 include(CTest)
 if(BUILD_TESTING)
     add_executable(ambient-tests tests/ambient_test.cpp src/mpv/ambient.cpp)
+    # Keep test DLL copies separate from the application's parallel post-build copy.
+    set_target_properties(ambient-tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tests")
     target_include_directories(ambient-tests PRIVATE src)
     target_link_libraries(ambient-tests PRIVATE ${MPV_LIBRARY})
     add_test(NAME ambient-settings COMMAND ambient-tests)

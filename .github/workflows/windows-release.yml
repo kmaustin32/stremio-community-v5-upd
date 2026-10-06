@@ -72,8 +72,8 @@ jobs:
           node build/deploy_windows.js --skip-build --installer
           if ($LASTEXITCODE) { throw 'Packaging failed' }
           New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item 'utils/Stremio 5.0.22-x64.exe' out/Stremio-5.0.22-mpv.1-x64.exe
-          Compress-Archive -Path dist/win-x64/* -DestinationPath out/Stremio-5.0.22-mpv.1-x64.zip
+          Copy-Item 'utils/Stremio 5.0.22-x64.exe' out/Stremio-5.0.22-mpv.2-x64.exe
+          Compress-Archive -Path dist/win-x64/* -DestinationPath out/Stremio-5.0.22-mpv.2-x64.zip
           Get-ChildItem out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } | Set-Content out/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7
         if: success()

@@ -7,11 +7,14 @@ an existing system Vulkan runtime.
 
 - Toggle Ambient Border Blur in the tray menu or with Ctrl+B in the player.
 - The preference survives restart; `BorderBlurEnabled=-1` follows mpv.conf.
-- Use `vo=gpu-next`, `border-background=blur`, and `background-blur-radius=16` in mpv.conf.
+- New defaults enable blur at radius 25, use ewa_lanczos scaling, and force white subtitles.
+- Updated input.conf: Ctrl+1–6 Anime4K, Ctrl+7 FSR, Ctrl+8 shader clearing, F1 audio normalization, F2 subtitle overrides, k/left-click pause, j/l seek, and [/] speed adjustment.
+- FSR.glsl is now included from the verified original community package.
+- Existing saved blur preferences continue to override mpv.conf; set BorderBlurEnabled=-1 to follow the new default.
 - Automatic upstream binary updates are disabled to preserve fork features.
 - Upstream source updates can be merged into the fork; see the included README-fork.md.
 
-Download **Stremio-5.0.22-mpv.1-x64.exe** for installation, or the **.zip** for
+Download **Stremio-5.0.22-mpv.2-x64.exe** for installation, or the **.zip** for
 portable use with an installed WebView2 runtime. SHA256SUMS.txt verifies these
 downloads. The remaining archives preserve build dependencies and are not
 needed to run the application.

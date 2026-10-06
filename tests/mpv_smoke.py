@@ -135,10 +135,12 @@ def main():
             bytes((80 + x // 2, 80 + y // 2, 160)) for y in range(240) for x in range(320)))
         if args.video:
             sample = pathlib.Path(args.video).resolve()
-        # Also prove the exact documented options work when loaded from mpv.conf.
-        config = output / 'mpv.conf'
-        config.write_text('vo=gpu-next\nborder-background=color\nbackground-blur-radius=16\n')
-        for name, value in {'config': 'no', 'load-scripts': 'no', 'terminal': 'yes',
+        # Load the actual defaults shipped by the packager, including input.conf.
+        config_dir = pathlib.Path(__file__).resolve().parents[1] / 'utils/mpv/anime4k/portable_config'
+        config = config_dir / 'mpv.conf'
+        for name, value in {'config': 'yes', 'load-scripts': 'no', 'terminal': 'yes',
+                            'config-dir': str(config_dir), 'input-conf': str(config_dir / 'input.conf'),
+                            'gpu-shader-cache-dir': str(output / 'shader-cache'),
                             'wid': str(hwnd), 'gpu-api': 'd3d11', 'd3d11-warp': 'yes',
                             'image-display-duration': 'inf', 'pause': 'yes', 'ao': 'null',
                             'screenshot-high-bit-depth': 'no'}.items():
@@ -147,6 +149,9 @@ def main():
         checked(dll.mpv_initialize(player))
         print('Runtime:', prop('mpv-version'), 'libplacebo:', prop('libplacebo-version'))
         assert prop('mpv-version').startswith('mpv v0.41.'), prop('mpv-version')
+        assert prop('border-background') == 'blur'
+        assert prop('background-blur-radius') == '25.000000'
+        assert prop('sub-ass-override') == 'force'
         command('loadfile', sample)
         for _ in range(100):
             pump(0.1)
@@ -154,6 +159,11 @@ def main():
                 break
         assert prop('current-vo') == 'gpu-next', 'Embedded renderer did not start'
         pump(0.5)
+        default = output / 'blur-default.png'
+        command('screenshot-to-file', default, 'window')
+        assert max(read_png(default)[2](25, 225)) > 30, 'Default blur did not render'
+        checked(dll.mpv_set_property_string(player, b'border-background', b'color'))
+        pump(0.3)
         off = output / 'blur-off.png'
         command('screenshot-to-file', off, 'window')
         checked(dll.mpv_set_property_string(player, b'border-background', b'blur'))
@@ -166,14 +176,51 @@ def main():
         assert max(pixel_off(25, 225)) < 5, pixel_off(25, 225)
         assert max(pixel_on(25, 225)) > 30, pixel_on(25, 225)
         assert max(abs(a - b) for a, b in zip(pixel_off(400, 225), pixel_on(400, 225))) < 5
-        assert prop('background-blur-radius') == '16.000000', prop('background-blur-radius')
+        assert prop('background-blur-radius') == '25.000000', prop('background-blur-radius')
         # Switching back while the same media is loaded restores solid borders.
         checked(dll.mpv_set_property_string(player, b'border-background', b'color'))
         pump(0.3)
         restored = output / 'blur-restored.png'
         command('screenshot-to-file', restored, 'window')
         assert max(read_png(restored)[2](25, 225)) < 5
-        print('PASS: embedded gpu-next playback; native mpv.conf options; live blur on/off; unchanged video and radius')
+        # Exercise the real key bindings, rather than duplicating their commands.
+        for key in range(1, 8):
+            command('keypress', f'Ctrl+{key}')
+            pump(0.1)
+            shaders = [shader for shader in prop('glsl-shaders').split(';') if shader]
+            assert shaders, f'Ctrl+{key} did not select shaders'
+            for shader in shaders:
+                shader_path = config_dir / shader[3:] if shader.startswith('~~/') else pathlib.Path(shader)
+                assert shader_path.is_file(), f'Missing shader: {shader}'
+            if key == 7:
+                pump(0.3)
+                command('screenshot-to-file', output / 'fsr.png', 'window')
+            command('keypress', 'Ctrl+8')
+            pump(0.1)
+            assert not prop('glsl-shaders'), 'Ctrl+8 did not clear shaders'
+        command('keypress', 'F1')
+        pump(0.1)
+        assert 'loudnorm' in prop('af'), 'F1 did not enable normalization'
+        command('keypress', 'F1')
+        pump(0.1)
+        assert 'loudnorm' not in prop('af'), 'F1 did not disable normalization'
+        for override in ('strip', 'no', 'force'):
+            command('keypress', 'F2')
+            pump(0.1)
+            assert prop('sub-ass-override') == override
+        command('keypress', ']')
+        pump(0.1)
+        assert float(prop('speed')) == 1.25
+        command('keypress', '[')
+        pump(0.1)
+        assert float(prop('speed')) == 1.0
+        command('keypress', 'k')
+        pump(0.05)
+        assert prop('pause') == 'no'
+        command('keypress', 'MBTN_LEFT')
+        pump(0.05)
+        assert prop('pause') == 'yes'
+        print('PASS: shipped mpv.conf/input.conf; default blur and live toggling; shader modes and files; FSR rendering; audio/subtitle/pause/speed bindings')
     finally:
         dll.mpv_terminate_destroy(player)
         user32.DestroyWindow(hwnd)

@@ -8,7 +8,7 @@ D3D11 playback. Use Windows 10/11 x64.
 
 ## Install and use
 
-Download `Stremio-5.0.22-mpv.1-x64.exe` from this fork's release. The installer
+Download `Stremio-5.0.22-mpv.2-x64.exe` from this fork's release. The installer
 installs WebView2 when needed. The `.zip` is portable but requires the system
 WebView2 runtime. Extract the ZIP into its own directory and run `stremio.exe`.
 
@@ -21,7 +21,7 @@ Edit `portable_config/mpv.conf` beside the application:
 ```ini
 vo=gpu-next
 border-background=blur
-background-blur-radius=16
+background-blur-radius=25
 ```
 
 The mpv option names are `border-background` and `background-blur-radius`;
@@ -34,6 +34,14 @@ In `portable_config/stremio-settings.ini`, `[MPV] BorderBlurEnabled=-1`
 follows mpv.conf. `0` overrides it with solid borders and `1` enables blur.
 The toggle writes only this preference and preserves the configured radius.
 Set it back to `-1` to resume following mpv.conf. Enabling blur selects gpu-next.
+
+New installations enable blur with radius 25, use `ewa_lanczos` scaling, and
+force white subtitles. Existing saved blur preferences continue to take priority.
+The bundled `input.conf` provides Ctrl+1 through Ctrl+6 for Anime4K modes,
+Ctrl+7 for FSR, Ctrl+8 to clear shaders, F1 for audio normalization, and F2
+to cycle subtitle overrides. It also includes k/left-click for pause, j/l
+for ten-second seeks, and [/] for speed changes of 0.25. The default shader
+chain remains commented out, so shaders activate only when selected.
 
 ## Keep upstream updates and fork changes
 
