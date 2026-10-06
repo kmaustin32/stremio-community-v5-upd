@@ -2,12 +2,18 @@
   "mpvVersion": "0.41.0-1101-g5d85ba5fb",
   "mpvRelease": "2026-10-05-5d85ba5fb3",
   "libplaceboVersion": "7.374.0",
+  "vulkanLoaderVersion": "1.4.363.0",
   "ffmpegVersion": "N-127213-g2da55bf59",
   "ffmpegToolsVersion": "N-127203-ga35c879992",
   "vcpkgCommit": "434307da09bc05b2c86996dccc8b2351fc0d5d37",
   "discordCommit": "963aa9f3e5ce81a4682c6ca3d136cddda614db33",
   "mirrorRelease": "v5.0.22-mpv.1",
   "assets": {
+    "vulkan": {
+      "name": "VulkanRT-X64-1.4.363.0-Components.zip",
+      "url": "https://sdk.lunarg.com/sdk/download/1.4.363.0/windows/VulkanRT-X64-1.4.363.0-Components.zip",
+      "sha256": "a25a927aa8b9f0371048f1861cf88ac3b9bc9b1fb332c42d897c8ab32695769a"
+    },
     "libmpv": {
       "name": "mpv-dev-x86_64-20261005-git-5d85ba5fb3.7z",
       "url": "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-10-05-5d85ba5fb3/mpv-dev-x86_64-20261005-git-5d85ba5fb3.7z",

@@ -34,6 +34,10 @@ if(STREMIO_MPV_DIR)
 endif()
 
 include_directories(${DISCORD_INCLUDE_DIR})
+set(MPV_RUNTIME_DLLS "${MPV_DLL}")
+if(STREMIO_MPV_DIR)
+    file(GLOB MPV_RUNTIME_DLLS "${STREMIO_MPV_DIR}/*.dll")
+endif()
 include_directories(${MPV_INCLUDE_DIR})
 
 find_package(OpenSSL REQUIRED)
@@ -103,7 +107,7 @@ if(BUILD_TESTING)
     target_link_libraries(ambient-tests PRIVATE ${MPV_LIBRARY})
     add_test(NAME ambient-settings COMMAND ambient-tests)
     add_custom_command(TARGET ambient-tests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MPV_DLL}" $<TARGET_FILE_DIR:ambient-tests>)
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MPV_RUNTIME_DLLS} $<TARGET_FILE_DIR:ambient-tests>)
     add_executable(discord-tests tests/discord_test.cpp)
     target_link_libraries(discord-tests PRIVATE nlohmann_json::nlohmann_json ${DISCORD_LIB})
     add_test(NAME discord-presence COMMAND discord-tests)
@@ -112,6 +116,6 @@ endif()
 # Copy MPV DLL
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${MPV_DLL}"
+        ${MPV_RUNTIME_DLLS}
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )

@@ -31,6 +31,9 @@ foreach ($entry in $lock.assets.PSObject.Properties) {
 }
 
 $sdk = Join-Path $cache 'libmpv'
+$vulkanRoot = Join-Path $cache "vulkan/VulkanRT-X64-$($lock.vulkanLoaderVersion)-Components"
+Copy-Item (Join-Path $vulkanRoot 'x64/vulkan-1.dll') $sdk -Force
+Copy-Item (Join-Path $vulkanRoot 'VulkanRT-License.txt') (Join-Path $sdk 'LICENSE-vulkan.txt') -Force
 if (!$SkipImportLibrary) {
     $exports = & dumpbin.exe /nologo /exports (Join-Path $sdk 'libmpv-2.dll')
     if ($LASTEXITCODE -ne 0) { throw 'dumpbin failed' }

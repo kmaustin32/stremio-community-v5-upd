@@ -67,7 +67,16 @@ def main():
     args = parser.parse_args()
     output = pathlib.Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
-    dll = c.CDLL(str(pathlib.Path(args.dll).resolve()))
+    dll_path = pathlib.Path(args.dll).resolve()
+    dll = c.CDLL(str(dll_path))
+    kernel32 = c.WinDLL('kernel32')
+    kernel32.GetModuleHandleW.argtypes = [w.LPCWSTR]
+    kernel32.GetModuleHandleW.restype = w.HMODULE
+    kernel32.GetModuleFileNameW.argtypes = [w.HMODULE, w.LPWSTR, w.DWORD]
+    loader_path = c.create_unicode_buffer(32768)
+    kernel32.GetModuleFileNameW(kernel32.GetModuleHandleW('vulkan-1.dll'), loader_path, len(loader_path))
+    assert pathlib.Path(loader_path.value).parent == dll_path.parent, 'Must use the bundled Vulkan loader'
+    print('Bundled Vulkan loader:', loader_path.value)
     dll.mpv_create.restype = c.c_void_p
     dll.mpv_initialize.argtypes = [c.c_void_p]
     dll.mpv_set_option_string.argtypes = [c.c_void_p, c.c_char_p, c.c_char_p]
@@ -131,7 +140,7 @@ def main():
         config.write_text('vo=gpu-next\nborder-background=color\nbackground-blur-radius=16\n')
         for name, value in {'config': 'no', 'load-scripts': 'no', 'terminal': 'yes',
                             'wid': str(hwnd), 'gpu-api': 'd3d11', 'd3d11-warp': 'yes',
-                            'image-display-duration': 'inf', 'pause': 'yes',
+                            'image-display-duration': 'inf', 'pause': 'yes', 'ao': 'null',
                             'screenshot-high-bit-depth': 'no'}.items():
             checked(dll.mpv_set_option_string(player, name.encode(), value.encode()))
         checked(dll.mpv_load_config_file(player, str(config).encode()))

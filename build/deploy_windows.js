@@ -85,6 +85,12 @@ const VCPKG_CMAKE = process.env.VCPKG_ROOT
 
         // 6) Copy mpv DLL, server.js, node.exe
         copyFile(MPV_DLL, path.join(DIST_DIR, path.basename(MPV_DLL)));
+        if (process.env.STREMIO_MPV_DIR) {
+            for (const file of fs.readdirSync(process.env.STREMIO_MPV_DIR)) {
+                if (file.endsWith('.dll') && file !== path.basename(MPV_DLL))
+                    copyFile(path.join(process.env.STREMIO_MPV_DIR, file), path.join(DIST_DIR, file));
+            }
+        }
         copyFile(SERVER_JS, path.join(DIST_DIR, path.basename(SERVER_JS)));
 
 
@@ -96,6 +102,24 @@ const VCPKG_CMAKE = process.env.VCPKG_ROOT
         copyFolderContents(FFMPEG_FOLDER, DIST_DIR);
         copyFolderContentsPreservingStructure(MPV_FOLDER, DIST_DIR);
         copyFolderContentsPreservingStructure(DEFAULT_SETTINGS_FOLDER, CONFIG_DIR);
+        copyFile(path.join(SOURCE_DIR, 'docs', 'FORK.md'), path.join(DIST_DIR, 'README-fork.md'));
+        copyFile(path.join(SOURCE_DIR, 'build', 'dependencies.lock.json'), path.join(DIST_DIR, 'dependencies.lock.json'));
+        copyFile(path.join(SOURCE_DIR, 'LICENSE.md'), path.join(DIST_DIR, 'LICENSE.md'));
+        const licensesDir = path.join(DIST_DIR, 'licenses');
+        fs.mkdirSync(licensesDir, { recursive: true });
+        if (process.env.STREMIO_MPV_DIR) {
+            copyFile(path.join(process.env.STREMIO_MPV_DIR, 'LICENSE-vulkan.txt'), path.join(licensesDir, 'vulkan.txt'));
+        }
+        const portShare = path.join(BUILD_DIR, 'vcpkg_installed', VCPKG_TRIPLET, 'share');
+        if (fs.existsSync(portShare)) {
+            for (const port of fs.readdirSync(portShare)) {
+                const copyright = path.join(portShare, port, 'copyright');
+                if (fs.existsSync(copyright)) copyFile(copyright, path.join(licensesDir, `${port}.txt`));
+            }
+        }
+        const lock = require('./dependencies.lock.json');
+        const discordLicense = path.join(SOURCE_DIR, '.build-cache', `discord-rpc-${lock.discordCommit}`, 'LICENSE');
+        if (fs.existsSync(discordLicense)) copyFile(discordLicense, path.join(licensesDir, 'discord-rpc.txt'));
 
         console.log('\n=== dist\\win preparation complete. ===');
 

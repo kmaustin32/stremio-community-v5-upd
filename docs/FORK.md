@@ -3,6 +3,8 @@
 This fork bundles mpv **0.41.0-1101-g5d85ba5fb**, libplacebo **7.374.0** and
 FFmpeg **N-127213-g2da55bf59** from zhongfly's 2026-10-05 build. The standard
 x86_64 build works without the newer CPU requirements of x86_64-v3.
+The required Vulkan loader **1.4.363.0** is bundled beside mpv, including for
+D3D11 playback. Use Windows 10/11 x64.
 
 ## Install and use
 
@@ -83,10 +85,9 @@ verify FFmpeg encoding, FFprobe metadata and streaming server startup. A release
 tag matching `v*-mpv.*` publishes only after all build and test steps succeed.
 Check hardware playback, HDR and streaming on the target machine as well.
 
-The mpv publisher retains only 30 days of build archives. The release includes
-the original app's Discord watching status and buttons through a small SDK
-extension, tested against the actual compiled serializer.
+The original app's Discord watching status and buttons are preserved through
+a small SDK extension, tested against the actual compiled serializer.
 
-The release also includes
-the original checksum-verified dependency archives and the build script falls
+The mpv publisher retains only 30 days of build archives. The release includes
+the original checksum-verified dependency archives. The build script falls
 back to those mirrors, keeping this commit buildable after upstream cleanup.
