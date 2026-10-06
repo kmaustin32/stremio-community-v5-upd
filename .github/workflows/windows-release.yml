@@ -63,6 +63,7 @@ jobs:
         shell: pwsh
         run: |
           $env:STREMIO_MPV_DIR = "$pwd/.build-cache/libmpv"
+          $env:STREMIO_FFMPEG_DIR = "$pwd/.build-cache/media-tools"
           node build/deploy_windows.js --skip-build --installer
           if ($LASTEXITCODE) { throw 'Packaging failed' }
           New-Item -ItemType Directory -Force out | Out-Null
@@ -87,7 +88,7 @@ jobs:
           name: Dependency-archives
           path: |
             .build-cache/mpv*.7z
-            .build-cache/ffmpeg*.7z
+            .build-cache/ffmpeg*.zip
             .build-cache/Stremio.5.0.22-x64.exe
   release:
     if: startsWith(github.ref, 'refs/tags/')

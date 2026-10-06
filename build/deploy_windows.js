@@ -31,7 +31,7 @@ const MPV_DLL = process.env.STREMIO_MPV_DIR
     : path.join(SOURCE_DIR, 'deps', 'libmpv', 'x86_64', 'libmpv-2.dll');
 const SERVER_JS = path.join(SOURCE_DIR, 'utils', 'windows', 'server.js');
 const STREMIO_RUNTIME_EXE = path.join(SOURCE_DIR, 'utils', 'windows', 'stremio-runtime.exe');
-const FFMPEG_FOLDER = path.join(SOURCE_DIR, 'utils', 'windows', 'ffmpeg');
+const FFMPEG_FOLDER = process.env.STREMIO_FFMPEG_DIR || path.join(SOURCE_DIR, 'utils', 'windows', 'ffmpeg');
 const MPV_FOLDER = path.join(SOURCE_DIR, 'utils', 'mpv', 'anime4k');
 const DEFAULT_SETTINGS_FOLDER = path.join(SOURCE_DIR, 'utils', 'stremio');
 

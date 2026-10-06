@@ -3,6 +3,7 @@
   "mpvRelease": "2026-10-05-5d85ba5fb3",
   "libplaceboVersion": "7.374.0",
   "ffmpegVersion": "N-127213-g2da55bf59",
+  "ffmpegToolsVersion": "N-127203-ga35c879992",
   "vcpkgCommit": "434307da09bc05b2c86996dccc8b2351fc0d5d37",
   "discordCommit": "963aa9f3e5ce81a4682c6ca3d136cddda614db33",
   "mirrorRelease": "v5.0.22-mpv.1",
@@ -18,9 +19,9 @@
       "sha256": "d973acd2711b10275f3589ab569d1526788cefd6cc6e50ea8be49fd9e41d5e4e"
     },
     "ffmpeg": {
-      "name": "ffmpeg-x86_64-git-2da55bf59.7z",
-      "url": "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-10-05-5d85ba5fb3/ffmpeg-x86_64-git-2da55bf59.7z",
-      "sha256": "96f0d0e885751b8ed648b0bf0e310473bb06a1dae61731fd799dd082c276583c"
+      "name": "ffmpeg-N-127203-ga35c879992-win64-gpl.zip",
+      "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-05-13-07/ffmpeg-N-127203-ga35c879992-win64-gpl.zip",
+      "sha256": "34517bf39addbcfcdf01236074491e3ba94d6d137801f88803903a87cb76d1aa"
     },
     "upstream": {
       "name": "Stremio.5.0.22-x64.exe",

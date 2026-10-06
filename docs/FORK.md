@@ -63,7 +63,8 @@ feed can be provided through `STREMIO_UPDATE_URL` at build time or the existing
 GitHub Actions compiles x64 with MSVC and static vcpkg dependencies pinned in
 `vcpkg.json` and `build/dependencies.lock.json`. It generates the MSVC import
 library from the matching DLL and uses matching headers. FFmpeg and libplacebo
-are updated with mpv; FFmpeg command-line utilities are updated as well. The
+are updated with mpv. The FFmpeg/FFprobe tools use BtbN's dated 2026-10-05
+build, N-127203-ga35c879992, with both utilities updated together. The
 original project's tested streaming runtime and server are retained.
 
 For a local build, use an x64 Visual Studio Developer PowerShell with CMake,

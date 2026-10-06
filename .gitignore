@@ -14,3 +14,4 @@ utils/Stremio*.exe
 utils/Stremio*.7z
 utils/Stremio*.zip
 __pycache__/
+utils/mpv/anime4k/portable_config/shaders/

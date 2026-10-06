@@ -51,12 +51,18 @@ foreach ($name in @('stremio-runtime.exe', 'server.js')) {
 foreach ($name in @('StremioServiceSetup.exe', 'MicrosoftEdgeWebview2Setup.exe')) {
     Copy-Item (Join-Path $cache "upstream/`$PLUGINSDIR/$name") $windows -Force
 }
-New-Item -ItemType Directory -Force (Join-Path $windows 'ffmpeg') | Out-Null
+$mediaTools = Join-Path $cache 'media-tools'
+New-Item -ItemType Directory -Force $mediaTools | Out-Null
 Get-ChildItem (Join-Path $cache 'ffmpeg') -Recurse -File |
-    Where-Object { $_.Extension -in @('.dll', '.exe') } |
-    Copy-Item -Destination (Join-Path $windows 'ffmpeg') -Force
+    Where-Object { $_.Name -in @('ffmpeg.exe', 'ffprobe.exe') } |
+    Copy-Item -Destination $mediaTools -Force
+foreach ($name in @('ffmpeg.exe', 'ffprobe.exe')) {
+    if (!(Test-Path (Join-Path $mediaTools $name))) { throw "Missing updated media tool: $name" }
+}
+Get-ChildItem (Join-Path $cache 'ffmpeg') -Recurse -Filter 'LICENSE*' -File |
+    Select-Object -First 1 | Copy-Item -Destination (Join-Path $mediaTools 'LICENSE-ffmpeg.txt') -Force
 Invoke-Checked $sevenZip @('x', (Join-Path $root 'utils/mpv/anime4k/anime4k-High-end.zip'),
-    "-o$(Join-Path $root 'utils/mpv/anime4k/portable_config')", '-y')
+    "-o$(Join-Path $root 'utils/mpv/anime4k/portable_config')", 'shaders/*', '-y')
 
 if (!$SkipImportLibrary) {
     $discordArchive = Join-Path $cache 'discord.zip'
@@ -67,7 +73,8 @@ if (!$SkipImportLibrary) {
     $discordSource = Join-Path $cache "discord-rpc-$($lock.discordCommit)"
     Invoke-Checked 'cmake' @('-S', $discordSource, '-B', (Join-Path $cache 'discord-build'), '-G', 'Ninja',
         '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_EXAMPLES=OFF', '-DBUILD_SHARED_LIBS=OFF',
-        '-DCMAKE_POLICY_VERSION_MINIMUM=3.5', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded')
+        '-DCMAKE_POLICY_VERSION_MINIMUM=3.5', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded',
+        '-DUSE_STATIC_CRT=ON', '-DCLANG_FORMAT_CMD:FILEPATH=OFF')
     Invoke-Checked 'cmake' @('--build', (Join-Path $cache 'discord-build'))
     $discordDest = Join-Path $root 'deps/discord-rpc/win64-static'
     New-Item -ItemType Directory -Force "$discordDest/lib", "$discordDest/include" | Out-Null
