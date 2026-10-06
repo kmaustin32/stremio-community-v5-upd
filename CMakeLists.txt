@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 option(DEBUG_LOG "Allow debug logs" ON)
+include(cmake/ForkDefaults.cmake)
 
 # Locate MPV
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -24,6 +25,12 @@ else()
 
     set(DISCORD_LIB "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/win32-static/lib/discord-rpc.lib")
     set(DISCORD_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/discord-rpc/win32-static/include")
+endif()
+
+if(STREMIO_MPV_DIR)
+    set(MPV_INCLUDE_DIR "${STREMIO_MPV_DIR}/include")
+    set(MPV_LIBRARY "${STREMIO_MPV_DIR}/mpv.lib")
+    set(MPV_DLL "${STREMIO_MPV_DIR}/libmpv-2.dll")
 endif()
 
 include_directories(${DISCORD_INCLUDE_DIR})
@@ -47,6 +54,7 @@ set(SOURCES
         src/utils/crashlog.cpp
         src/mpv/player.h
         src/mpv/player.cpp
+        src/mpv/ambient.cpp
         src/node/server.cpp
         src/node/server.h
         src/tray/tray.h
@@ -86,6 +94,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG_LOG)
+target_compile_definitions(${PROJECT_NAME} PRIVATE STREMIO_DEFAULT_UPDATE_URL="${STREMIO_UPDATE_URL}")
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(ambient-tests tests/ambient_test.cpp src/mpv/ambient.cpp)
+    target_include_directories(ambient-tests PRIVATE src)
+    target_link_libraries(ambient-tests PRIVATE ${MPV_LIBRARY})
+    add_test(NAME ambient-settings COMMAND ambient-tests)
+    add_custom_command(TARGET ambient-tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MPV_DLL}" $<TARGET_FILE_DIR:ambient-tests>)
+endif()
 
 # Copy MPV DLL
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

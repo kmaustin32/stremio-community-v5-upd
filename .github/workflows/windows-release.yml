@@ -1,0 +1,112 @@
+name: Windows build and release
+on:
+  push:
+    branches: ['webview-windows', 'codex/**']
+    tags: ['v*-mpv.*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .build-cache
+            vcpkg_installed
+          key: windows-x64-${{ hashFiles('build/dependencies.lock.json', 'vcpkg.json') }}
+      - name: Prepare verified player and media dependencies
+        shell: pwsh
+        run: ./build/prepare-fork.ps1
+      - name: Prepare pinned vcpkg
+        shell: pwsh
+        run: |
+          $lock = Get-Content build/dependencies.lock.json -Raw | ConvertFrom-Json
+          if (!(Test-Path .build-cache/vcpkg/.git)) { git clone https://github.com/microsoft/vcpkg .build-cache/vcpkg }
+          git -C .build-cache/vcpkg checkout $lock.vcpkgCommit
+          if ($LASTEXITCODE) { throw 'vcpkg checkout failed' }
+          & ./.build-cache/vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          if ($LASTEXITCODE) { throw 'vcpkg bootstrap failed' }
+      - name: Compile application and tests
+        shell: pwsh
+        run: |
+          cmake -S . -B cmake-build-release-x64 -G Ninja -DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=x64-windows-static "-DCMAKE_TOOLCHAIN_FILE=$pwd/.build-cache/vcpkg/scripts/buildsystems/vcpkg.cmake" "-DSTREMIO_MPV_DIR=$pwd/.build-cache/libmpv"
+          if ($LASTEXITCODE) { throw 'CMake configure failed' }
+          cmake --build cmake-build-release-x64
+          if ($LASTEXITCODE) { throw 'C++ compilation failed' }
+      - name: Test configuration, toggling, persistence, and rendering
+        shell: pwsh
+        run: |
+          ctest --test-dir cmake-build-release-x64 --output-on-failure
+          if ($LASTEXITCODE) { throw 'C++ tests failed' }
+          python tests/mpv_smoke.py --dll .build-cache/libmpv/libmpv-2.dll --output .build-cache/render-test
+          if ($LASTEXITCODE) { throw 'Embedded rendering tests failed' }
+          node --test tests/shortcut.test.js
+          if ($LASTEXITCODE) { throw 'Shortcut tests failed' }
+      - name: Install packaging tools
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          if ($LASTEXITCODE) { throw 'NSIS installation failed' }
+          Copy-Item utils/windows/NsProcess/Include/nsProcess.nsh 'C:/Program Files (x86)/NSIS/Include/'
+          Copy-Item utils/windows/NsProcess/Plugin/x86-unicode/nsProcess.dll 'C:/Program Files (x86)/NSIS/Plugins/x86-unicode/'
+      - name: Package installer and portable archive
+        shell: pwsh
+        run: |
+          $env:STREMIO_MPV_DIR = "$pwd/.build-cache/libmpv"
+          node build/deploy_windows.js --skip-build --installer
+          if ($LASTEXITCODE) { throw 'Packaging failed' }
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item 'utils/Stremio 5.0.22-x64.exe' out/Stremio-5.0.22-mpv.1-x64.exe
+          Copy-Item build/dependencies.lock.json dist/win-x64/dependencies.lock.json
+          Copy-Item docs/FORK.md dist/win-x64/README-fork.md
+          Copy-Item LICENSE.md dist/win-x64/LICENSE.md
+          Compress-Archive -Path dist/win-x64/* -DestinationPath out/Stremio-5.0.22-mpv.1-x64.zip
+          Get-ChildItem out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } | Set-Content out/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Windows-x64
+          path: |
+            out/
+            .build-cache/render-test/
+          if-no-files-found: warn
+      - name: Upload reproducible dependency archives
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dependency-archives
+          path: |
+            .build-cache/mpv*.7z
+            .build-cache/ffmpeg*.7z
+            .build-cache/Stremio.5.0.22-x64.exe
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Windows-x64
+          path: release-files
+      - uses: actions/download-artifact@v4
+        with:
+          name: Dependency-archives
+          path: dependency-files
+      - name: Publish tested release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "Stremio 5.0.22 - mpv 0.41 ambient blur" --notes-file docs/RELEASE-mpv.md release-files/out/* dependency-files/*

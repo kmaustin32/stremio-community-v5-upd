@@ -69,6 +69,18 @@ try {
 static const wchar_t* INJECTED_KEYDOWN_SCRIPT = LR"JS(
 (function() {
     window.addEventListener('keydown', function(event) {
+        const editable = event.target && (event.target.isContentEditable ||
+            /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName));
+        if (event.ctrlKey && !event.altKey && !event.shiftKey &&
+            event.code === 'KeyB' && !editable) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (!event.repeat) window.chrome.webview.postMessage(JSON.stringify({
+                type: 6, object: 'transport', method: 'handleInboundJSON', id: 1000,
+                args: ['toggle-border-blur', []]
+            }));
+            return;
+        }
         if (event.code === 'F5') {
             event.preventDefault();
             const ctrlPressed = event.ctrlKey || event.metaKey;
@@ -84,7 +96,7 @@ static const wchar_t* INJECTED_KEYDOWN_SCRIPT = LR"JS(
             };
             window.chrome.webview.postMessage(JSON.stringify(msg));
         }
-    });
+    }, true);
 })();
 )JS";
 

@@ -1,0 +1,16 @@
+.task-tools/
+.build-cache/
+cmake-build-*/
+dist/
+out/
+vcpkg_installed/
+deps/discord-rpc/
+utils/windows/ffmpeg/
+utils/windows/stremio-runtime.exe
+utils/windows/server.js
+utils/windows/*Setup.exe
+utils/windows/WebviewRuntime/
+utils/Stremio*.exe
+utils/Stremio*.7z
+utils/Stremio*.zip
+__pycache__/

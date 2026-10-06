@@ -11,6 +11,7 @@
 #include "../utils/helpers.h"
 #include "../utils/config.h"
 #include "../mpv/player.h"
+#include "../mpv/ambient.h"
 #include "../tray/tray.h"
 #include "../ui/splash.h"
 #include "../webview/webview.h"
@@ -130,9 +131,20 @@ void SendToJS(const std::string &eventName, const nlohmann::json &eventData)
 #endif
 }
 
+static void ToggleAmbientBorders()
+{
+    if (ToggleBorderBlur(g_mpv, GetExeDirectory() + L"\\portable_config\\stremio-settings.ini")) {
+        if (IsBorderBlurEnabled(g_mpv)) g_initialVO = "gpu-next";
+    } else {
+        AppendToCrashLog("[MPV]: Could not toggle or save ambient border blur");
+    }
+}
+
 void HandleEvent(const std::string &ev, std::vector<std::string> &args)
 {
-    if(ev=="mpv-command"){
+    if (ev == "toggle-border-blur") {
+        ToggleAmbientBorders();
+    } else if(ev=="mpv-command"){
         // Allow list check
         std::string cmdName = args.empty() ? "" : ToLowerStr(args[0]);
         if(!g_mpvCommandAllowlist.count(cmdName)){
@@ -151,7 +163,7 @@ void HandleEvent(const std::string &ev, std::vector<std::string> &args)
             if (args[1].rfind("http://", 0) != 0 && args[1].rfind("https://", 0) != 0) {
                 args[1] = decodeURIComponent(args[1]);
             }
-            std::vector<std::string> voArgs = {"vo",g_initialVO};
+            std::vector<std::string> voArgs = {"vo", IsBorderBlurEnabled(g_mpv) ? "gpu-next" : g_initialVO};
             HandleMpvSetProp(voArgs);
             std::vector<std::string> volumeArgs = {"volume", std::to_string(g_currentVolume)};
             HandleMpvSetProp(volumeArgs);
@@ -446,6 +458,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         switch(LOWORD(wParam))
         {
+        case ID_TRAY_BORDER_BLUR:
+            ToggleAmbientBorders();
+            break;
         case ID_TRAY_SHOWWINDOW:
             g_showWindow = !g_showWindow;
             ShowWindow(hWnd, g_showWindow?SW_SHOW:SW_HIDE);

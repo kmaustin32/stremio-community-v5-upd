@@ -1,0 +1,6 @@
+{
+  "name": "stremio-community-fork",
+  "version-string": "5.0.22-mpv.1",
+  "builtin-baseline": "434307da09bc05b2c86996dccc8b2351fc0d5d37",
+  "dependencies": ["curl", "openssl", "nlohmann-json", "webview2", "wil"]
+}

@@ -1,4 +1,5 @@
 #include "player.h"
+#include "ambient.h"
 #include <iostream>
 #include <cctype>
 #include "../core/globals.h"
@@ -254,8 +255,10 @@ bool InitMPV(HWND hwnd)
         return false;
     }
 
-    // Set VO
-    mpv_set_option_string(g_mpv,"vo","gpu-next");
+    if (!ApplyBorderBlurPreference(g_mpv, ReadBorderBlurPreference(
+            cfg + L"\\stremio-settings.ini"))) {
+        AppendToCrashLog("[MPV]: Could not apply ambient border blur preference");
+    }
 
     // demux/caching
     mpv_set_property_string(g_mpv,"demuxer-lavf-probesize",     "524288");

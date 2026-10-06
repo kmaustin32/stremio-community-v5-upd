@@ -1,3 +1,5 @@
+> This fork upgrades mpv to 0.41 and adds ambient border blur. See [fork setup, configuration, and upstream merge instructions](docs/FORK.md).
+
 <p align="center">
   <img src="https://www.stremio.com/website/stremio-logo-small.png" alt="Stremio Web Desktop Logo" width="200" />
 </p>

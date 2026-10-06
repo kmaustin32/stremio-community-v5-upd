@@ -1,0 +1,31 @@
+{
+  "mpvVersion": "0.41.0-1101-g5d85ba5fb",
+  "mpvRelease": "2026-10-05-5d85ba5fb3",
+  "libplaceboVersion": "7.374.0",
+  "ffmpegVersion": "N-127213-g2da55bf59",
+  "vcpkgCommit": "434307da09bc05b2c86996dccc8b2351fc0d5d37",
+  "discordCommit": "963aa9f3e5ce81a4682c6ca3d136cddda614db33",
+  "mirrorRelease": "v5.0.22-mpv.1",
+  "assets": {
+    "libmpv": {
+      "name": "mpv-dev-x86_64-20261005-git-5d85ba5fb3.7z",
+      "url": "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-10-05-5d85ba5fb3/mpv-dev-x86_64-20261005-git-5d85ba5fb3.7z",
+      "sha256": "177f8e04560188382e1a9793ed2a0d03d43fda92000cd345e725a64f8d5baf2f"
+    },
+    "mpv": {
+      "name": "mpv-x86_64-20261005-git-5d85ba5fb3.7z",
+      "url": "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-10-05-5d85ba5fb3/mpv-x86_64-20261005-git-5d85ba5fb3.7z",
+      "sha256": "d973acd2711b10275f3589ab569d1526788cefd6cc6e50ea8be49fd9e41d5e4e"
+    },
+    "ffmpeg": {
+      "name": "ffmpeg-x86_64-git-2da55bf59.7z",
+      "url": "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-10-05-5d85ba5fb3/ffmpeg-x86_64-git-2da55bf59.7z",
+      "sha256": "96f0d0e885751b8ed648b0bf0e310473bb06a1dae61731fd799dd082c276583c"
+    },
+    "upstream": {
+      "name": "Stremio.5.0.22-x64.exe",
+      "url": "https://github.com/Zaarrg/stremio-community-v5/releases/download/5.0.0-beta.22/Stremio.5.0.22-x64.exe",
+      "sha256": "b07653307e87681269c4e68628cfc71f0075c0c4d39fa1a292c6870f936b4dc4"
+    }
+  }
+}

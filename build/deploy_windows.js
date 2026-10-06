@@ -24,7 +24,9 @@ const CONFIG_DIR = path.join(SOURCE_DIR, 'dist', `win-${ARCH}`, 'portable_config
 const PROJECT_NAME = 'stremio';
 
 // Paths to Additional Dependencies
-const MPV_DLL = ARCH === 'x86'
+const MPV_DLL = process.env.STREMIO_MPV_DIR
+    ? path.join(process.env.STREMIO_MPV_DIR, 'libmpv-2.dll')
+    : ARCH === 'x86'
     ? path.join(SOURCE_DIR, 'deps', 'libmpv', 'i686', 'libmpv-2.dll')
     : path.join(SOURCE_DIR, 'deps', 'libmpv', 'x86_64', 'libmpv-2.dll');
 const SERVER_JS = path.join(SOURCE_DIR, 'utils', 'windows', 'server.js');
@@ -34,10 +36,12 @@ const MPV_FOLDER = path.join(SOURCE_DIR, 'utils', 'mpv', 'anime4k');
 const DEFAULT_SETTINGS_FOLDER = path.join(SOURCE_DIR, 'utils', 'stremio');
 
 // Default Paths
-const DEFAULT_NSIS = 'C:\\Program Files (x86)\\NSIS\\makensis.exe';
+const DEFAULT_NSIS = process.env.NSIS_EXE || 'C:\\Program Files (x86)\\NSIS\\makensis.exe';
 //VCPKG
 const VCPKG_TRIPLET = ARCH === 'x86' ? 'x86-windows-static' : 'x64-windows-static';
-const VCPKG_CMAKE = 'G:\\Documents\\Github\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake';
+const VCPKG_CMAKE = process.env.VCPKG_ROOT
+    ? path.join(process.env.VCPKG_ROOT, 'scripts', 'buildsystems', 'vcpkg.cmake')
+    : 'C:\\bin\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake';
 
 // ---------------------------------------------------------------------
 // Main
@@ -57,12 +61,14 @@ const VCPKG_CMAKE = 'G:\\Documents\\Github\\vcpkg\\scripts\\buildsystems\\vcpkg.
 
         console.log(`\n=== Running CMake in cmake-build-${debugBuild ? "Debug" : "Release"} ===`);
         process.chdir(BUILD_DIR);
+        if (!args.includes('--skip-build')) {
         execSync(
-            `cmake -G Ninja -DCMAKE_BUILD_TYPE=${debugBuild ? "Debug" : "Release"} -DCMAKE_TOOLCHAIN_FILE=${VCPKG_CMAKE} -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET} ..`,
+            `cmake -G Ninja -DCMAKE_BUILD_TYPE=${debugBuild ? "Debug" : "Release"} "-DCMAKE_TOOLCHAIN_FILE=${VCPKG_CMAKE}" -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET} "-DSTREMIO_MPV_DIR=${process.env.STREMIO_MPV_DIR || ''}" ..`,
             { stdio: 'inherit' }
         );
         console.log('=== Running Ninja in cmake-build-release ===');
         execSync('ninja', { stdio: 'inherit' });
+        }
 
         // Return to script directory
         process.chdir(__dirname);
@@ -126,8 +132,7 @@ function safeRemove(dirPath) {
 
 function copyFile(src, dest) {
     if (!fs.existsSync(src)) {
-        console.warn(`Warning: missing file: ${src}`);
-        return;
+        throw new Error(`Required file is missing: ${src}`);
     }
     fs.copyFileSync(src, dest);
     console.log(`Copied: ${src} -> ${dest}`);
@@ -140,8 +145,7 @@ function copyFile(src, dest) {
  */
 function copyFolderContents(src, dest) {
     if (!fs.existsSync(src)) {
-        console.warn(`Warning: missing folder: ${src}`);
-        return;
+        throw new Error(`Required folder is missing: ${src}`);
     }
     const stats = fs.statSync(src);
     if (!stats.isDirectory()) {
@@ -166,8 +170,7 @@ function copyFolderContents(src, dest) {
  */
 function copyFolderContentsPreservingStructure(src, dest) {
     if (!fs.existsSync(src)) {
-        console.warn(`Warning: missing folder: ${src}`);
-        return;
+        throw new Error(`Required folder is missing: ${src}`);
     }
 
     const stats = fs.statSync(src);
@@ -220,8 +223,7 @@ function getPackageVersionFromCMake() {
 
 function buildNsisInstaller() {
     if (!fs.existsSync(DEFAULT_NSIS)) {
-        console.warn(`NSIS not found at default path: ${DEFAULT_NSIS}. Skipping installer.`);
-        return;
+        throw new Error(`NSIS not found: ${DEFAULT_NSIS}`);
     }
     try {
         const arch = process.argv.includes('--x86') ? 'x86' : 'x64'; // Determine architecture
@@ -240,7 +242,7 @@ function buildNsisInstaller() {
         execSync(`"${DEFAULT_NSIS}" "${nsiScript}"`, { stdio: 'inherit' });
         console.log(`\nInstaller created: "Stremio ${process.env.package_version}.exe"`);
     } catch (err) {
-        console.error('Failed to run NSIS (makensis.exe):', err);
+        throw err;
     }
 }
 

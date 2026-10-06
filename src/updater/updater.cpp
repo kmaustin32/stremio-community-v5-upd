@@ -118,6 +118,9 @@ static bool VerifySignature(const std::string& data, const std::string& signatur
 
 void RunAutoUpdaterOnce()
 {
+    // Fork builds require their own signed update feed. An upstream installer
+    // would replace the fork's player and custom features.
+    if (g_updateUrl.empty()) return;
     g_updaterRunning = true;
     std::cout<<"Checking for Updates.\n";
 

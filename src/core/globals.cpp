@@ -16,7 +16,10 @@ std::vector<std::wstring> g_webuiUrls = {
     L"https://web.stremio.com/"
 };
 std::vector<std::wstring> g_domainWhitelist;
-std::string  g_updateUrl= "https://raw.githubusercontent.com/Zaarrg/stremio-desktop-v5/refs/heads/webview-windows/version/version.json";
+#ifndef STREMIO_DEFAULT_UPDATE_URL
+#define STREMIO_DEFAULT_UPDATE_URL ""
+#endif
+std::string  g_updateUrl = STREMIO_DEFAULT_UPDATE_URL;
 std::wstring  g_extensionsDetailsUrl= L"https://raw.githubusercontent.com/Zaarrg/stremio-desktop-v5/refs/heads/webview-windows/extensions/extensions.json";
 std::wstring  g_webuiUrl;
 
