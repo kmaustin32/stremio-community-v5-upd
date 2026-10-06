@@ -654,9 +654,10 @@ Section ; Shortcuts
     ; Register stremio:// protocol handler
     WriteRegStr HKCU "Software\Classes\stremio" "" "URL:Stremio Protocol"
     WriteRegStr HKCU "Software\Classes\stremio" "URL Protocol" ""
-    WriteRegStr HKCU "Software\Classes\stremio\DefaultIcon" "" "$INSTDIR\stremio.exe,1"
+    WriteRegStr HKCU "Software\Classes\stremio\DefaultIcon" "" "$INSTDIR\stremio.exe,0"
     WriteRegStr HKCU "Software\Classes\stremio\shell" "" "open"
     WriteRegStr HKCU "Software\Classes\stremio\shell\open\command" "" '"$INSTDIR\stremio.exe" "%1"'
+    !insertmacro UPDATEFILEASSOC
 
     IfSilent 0 end
     Call fin_pg_leave

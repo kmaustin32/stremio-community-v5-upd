@@ -80,8 +80,9 @@ jobs:
           node build/deploy_windows.js --skip-build --installer
           if ($LASTEXITCODE) { throw 'Packaging failed' }
           New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item 'utils/Stremio 5.0.22-x64.exe' out/Stremio-5.0.22-mpv.2-x64.exe
-          Compress-Archive -Path dist/win-x64/* -DestinationPath out/Stremio-5.0.22-mpv.2-x64.zip
+          Copy-Item 'utils/Stremio 5.0.22-x64.exe' out/Stremio-5.0.22-mpv.3-x64.exe
+          Compress-Archive -Path dist/win-x64/* -DestinationPath out/Stremio-5.0.22-mpv.3-x64.zip
+          Copy-Item images/stremio2.png out/stremio-icon.png
           Get-ChildItem out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } | Set-Content out/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7
         if: success()
@@ -140,4 +141,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --title "Stremio 5.0.22 - mpv 0.41 ambient blur" --notes-file docs/RELEASE-mpv.md release-files/* dependency-files/*
+          gh release create "$GITHUB_REF_NAME" --title "Stremio 5.0.22 - purple branding and Fit/Crop/Stretch" --notes-file docs/RELEASE-mpv.md release-files/* dependency-files/*

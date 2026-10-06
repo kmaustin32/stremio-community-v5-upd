@@ -8,7 +8,7 @@ D3D11 playback. Use Windows 10/11 x64.
 
 ## Install and use
 
-Download `Stremio-5.0.22-mpv.2-x64.exe` from this fork's release. The installer
+Download `Stremio-5.0.22-mpv.3-x64.exe` from this fork's release. The installer
 installs WebView2 when needed. The `.zip` is portable but requires the system
 WebView2 runtime. Extract the ZIP into its own directory and run `stremio.exe`.
 
@@ -43,6 +43,25 @@ to cycle subtitle overrides. It also includes k/left-click for pause, j/l
 for ten-second seeks, and [/] for speed changes of 0.25. The default shader
 chain remains commented out, so shaders activate only when selected.
 
+## Fit, Crop, and Stretch
+
+The player toolbar includes a display button that cycles **Fit → Crop → Stretch**.
+Fit preserves the complete picture and its proportions. Crop fills the player
+while keeping proportions, cutting off the edges as needed. Stretch fills the
+player by changing the picture's proportions. New videos reset to Fit; changing
+window size or entering fullscreen keeps the mode for the current video.
+The control preserves ambient blur, shaders, and subtitle styling. The tray's
+**Display** item provides the same cycle if the web toolbar is unavailable.
+Crop fills the player with the encoded frame; it does not detect black bars
+encoded inside the video.
+
+The native app, splash, installer/uninstaller, web UI branding, return button,
+and default Discord logo use **#7272c2**. The original logo silhouettes, white
+play symbols, transparency and wordmark lettering are retained. Movie artwork,
+add-on logos and unrelated interface icons retain their own colors. Web branding
+and the display button are embedded in the executable and work with the existing
+hosted community UI without replacing that upstream project.
+
 ## Keep upstream updates and fork changes
 
 The original repository remains the upstream source. Fork features and build
@@ -58,8 +77,9 @@ git switch codex/mpv-ambient-blur
 git merge upstream/webview-windows
 ```
 
-Resolve any conflicts while retaining `src/mpv/ambient.*`, the integration
-calls, `cmake/ForkDefaults.cmake`, and the fork's workflow. Run the release
+Resolve any conflicts while retaining `src/mpv/ambient.*`, `src/mpv/display_mode.*`,
+`src/webview/fork-player.js`, `cmake/ForkWebAssets.h.in`, the branded assets and
+resource mappings, the integration calls, `cmake/ForkDefaults.cmake`, and the fork's workflow. Run the release
 checks before publishing. Source updates cannot be guaranteed conflict-free.
 
 Automatic application updates are disabled by default because the original
@@ -92,6 +112,13 @@ gpu-next rendering with blur on/off using D3D11's software renderer. Tests also
 verify FFmpeg encoding, FFprobe metadata and streaming server startup. A release
 tag matching `v*-mpv.*` publishes only after all build and test steps succeed.
 Check hardware playback, HDR and streaming on the target machine as well.
+
+Display tests also check native geometry changes, Fit/Crop/Stretch rendering at
+two embedded host sizes, blur preservation, and the button in Edge. Browser tests
+check acknowledgment, keyboard use, hiding with the toolbar, narrow-screen layout,
+upstream toolbar recreation, new-video reset, and branding scope. The current UI
+uses named CSS-module selectors; future toolbar changes may need a small adjustment
+to the isolated script. The tray control continues to work independently.
 
 The original app's Discord watching status and buttons are preserved through
 a small SDK extension, tested against the actual compiled serializer.
