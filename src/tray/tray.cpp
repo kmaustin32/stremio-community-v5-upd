@@ -1,5 +1,6 @@
 #include "tray.h"
 #include "../mpv/ambient.h"
+#include "../mpv/display_mode.h"
 
 #include <iostream>
 #include <windows.h>
@@ -123,6 +124,10 @@ static void ShowDarkTrayMenu()
     g_menuItems.push_back({ ID_TRAY_ALWAYSONTOP,  g_alwaysOnTop,  false, L"Always on Top" });
     g_menuItems.push_back({ ID_TRAY_PICTURE_IN_PICTURE, g_isPipMode, false, L"Picture in Picture" });
     g_menuItems.push_back({ ID_TRAY_BORDER_BLUR, IsBorderBlurEnabled(g_mpv), false, L"Ambient Border Blur" });
+    const auto displayMode = CurrentDisplayMode();
+    g_menuItems.push_back({ ID_TRAY_DISPLAY_MODE, false, false,
+        displayMode == DisplayMode::Crop ? L"Display: Crop" :
+        displayMode == DisplayMode::Stretch ? L"Display: Stretch" : L"Display: Fit" });
     g_menuItems.push_back({ ID_TRAY_PAUSE_MINIMIZED, g_pauseOnMinimize, false, L"Pause Minimized" });
     g_menuItems.push_back({ ID_TRAY_PAUSE_FOCUS_LOST, g_pauseOnLostFocus, false, L"Pause Unfocused" });
     g_menuItems.push_back({ ID_TRAY_CLOSE_ON_EXIT, g_closeOnExit,  false, L"Close on Exit" });

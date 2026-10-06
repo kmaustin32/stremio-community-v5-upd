@@ -4,6 +4,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <utility>
 #include <Shlwapi.h>
 #include <wrl.h>
 #include "../core/globals.h"
@@ -11,6 +12,31 @@
 #include "../utils/helpers.h"
 #include "../ui/mainwindow.h"
 #include "../utils/extensions.h"
+#include "../resource.h"
+#include "ForkWebAssets.h"
+
+static std::wstring EmbeddedBrandImage(int resourceId)
+{
+    HRSRC resource = FindResource(g_hInst, MAKEINTRESOURCE(resourceId), RT_RCDATA);
+    if (!resource) return L"";
+    HGLOBAL data = LoadResource(g_hInst, resource);
+    const char* bytes = static_cast<const char*>(LockResource(data));
+    if (!bytes) return L"";
+    return L"data:image/png;base64," + Utf8ToWstring(Base64Encode(
+        std::string(bytes, SizeofResource(g_hInst, resource))));
+}
+
+static std::wstring WithBrandImages(const wchar_t* source)
+{
+    std::wstring script = source;
+    for (const auto& [marker, id] : {std::pair{L"__FORK_SYMBOL__", IDR_BRAND_SYMBOL},
+                                    std::pair{L"__FORK_WORDMARK__", IDR_BRAND_WORDMARK},
+                                    std::pair{L"__FORK_ICON__", IDR_BRAND_ICON}}) {
+        const size_t pos = script.find(marker);
+        if (pos != std::wstring::npos) script.replace(pos, wcslen(marker), EmbeddedBrandImage(id));
+    }
+    return script;
+}
 
 static const wchar_t* EXEC_SHELL_SCRIPT = LR"JS_CODE(
 try {
@@ -134,7 +160,7 @@ static const wchar_t* INJECTED_BUTTON_SCRIPT = LR"JS(
 
   // Create an image element for the logo
   var img = document.createElement('img');
-  img.src = 'https://stremio.zarg.me/images/stremio_symbol.png';
+  img.src = '__FORK_SYMBOL__';
   img.alt = 'Logo';
   img.style.height = '24px';
   img.style.width = '24px';
@@ -300,6 +326,8 @@ void InitWebView2(HWND hWnd)
 
                     g_webview->AddScriptToExecuteOnDocumentCreated(EXEC_SHELL_SCRIPT,nullptr);
                     g_webview->AddScriptToExecuteOnDocumentCreated(INJECTED_KEYDOWN_SCRIPT,nullptr);
+                    const std::wstring forkScript = WithBrandImages(kForkPlayerScript);
+                    g_webview->AddScriptToExecuteOnDocumentCreated(forkScript.c_str(), nullptr);
 
                     SetupWebMods();
 
@@ -349,7 +377,8 @@ static void SetupWebMessageHandler()
 
             // Add back to stremio button if not on stremio
             if (finalUri.find(g_webuiUrl) == std::wstring::npos) {
-                sender->ExecuteScript(INJECTED_BUTTON_SCRIPT, nullptr);
+                const std::wstring backScript = WithBrandImages(INJECTED_BUTTON_SCRIPT);
+                sender->ExecuteScript(backScript.c_str(), nullptr);
             }
 
             if(isSuccess) {

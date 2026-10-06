@@ -3,5 +3,8 @@
 
 #define IDR_MAINFRAME  101
 #define IDR_SPLASH_PNG 102
+#define IDR_BRAND_SYMBOL 103
+#define IDR_BRAND_WORDMARK 104
+#define IDR_BRAND_ICON 105
 
 #endif // RESOURCE_H

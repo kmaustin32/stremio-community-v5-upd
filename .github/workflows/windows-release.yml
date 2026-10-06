@@ -53,10 +53,18 @@ jobs:
           if ($LASTEXITCODE) { throw 'C++ tests failed' }
           python tests/media_tools.py --tools .build-cache/media-tools --runtime utils/windows/stremio-runtime.exe --server utils/windows/server.js --output .build-cache/media-test
           if ($LASTEXITCODE) { throw 'Streaming dependency tests failed' }
-          python tests/mpv_smoke.py --dll .build-cache/libmpv/libmpv-2.dll --output .build-cache/render-test --video .build-cache/media-test/sample.avi
+          python tests/mpv_smoke.py --dll .build-cache/libmpv/libmpv-2.dll --output .build-cache/render-test --video .build-cache/media-test/sample.avi --display-bridge cmake-build-release-x64/display-bridge/display-test-bridge.dll
           if ($LASTEXITCODE) { throw 'Embedded rendering tests failed' }
           node --test tests/shortcut.test.js tests/server_patch.test.js
           if ($LASTEXITCODE) { throw 'Shortcut tests failed' }
+      - name: Test player button in Edge
+        shell: pwsh
+        run: |
+          npm install --prefix .build-cache/ui-test --no-save --ignore-scripts playwright@1.62.1
+          if ($LASTEXITCODE) { throw 'UI test dependency install failed' }
+          $env:NODE_PATH = "$pwd/.build-cache/ui-test/node_modules"
+          node --test tests/player_controls.test.js
+          if ($LASTEXITCODE) { throw 'Player UI tests failed' }
       - name: Install packaging tools
         shell: pwsh
         run: |
@@ -89,6 +97,7 @@ jobs:
           path: |
             .build-cache/render-test/*.png
             .build-cache/media-test/server.log
+            .build-cache/ui-test-evidence/*.png
           include-hidden-files: true
           if-no-files-found: warn
       - name: Upload reproducible dependency archives

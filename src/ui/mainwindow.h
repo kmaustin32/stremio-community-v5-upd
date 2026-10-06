@@ -17,6 +17,7 @@ void ToggleFullScreen(HWND hWnd, bool enable);
 // Webview
 void HandleInboundJSON(const std::string &msg);
 void SendToJS(const std::string &eventName, const nlohmann::json &eventData);
+void NotifyDisplayModeState(bool active);
 void HandleEvent(const std::string &ev, std::vector<std::string> &args);
 
 #endif // MAINWINDOW_H

@@ -3,6 +3,8 @@
 
 #include <windows.h>
 #include <string>
+
+std::string Base64Encode(const std::string& in);
 #include <vector>
 #include <filesystem>
 

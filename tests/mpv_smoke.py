@@ -64,6 +64,7 @@ def main():
     parser.add_argument('--dll', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--video', help='Optional encoded sample to exercise video decoding as well')
+    parser.add_argument('--display-bridge', help='Test DLL calling the native display-mode implementation')
     args = parser.parse_args()
     output = pathlib.Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -220,6 +221,49 @@ def main():
         command('keypress', 'MBTN_LEFT')
         pump(0.05)
         assert prop('pause') == 'yes'
+        if args.display_bridge:
+            bridge = c.CDLL(str(pathlib.Path(args.display_bridge).resolve()))
+            bridge.TestApplyDisplayMode.argtypes = [c.c_void_p, c.c_int]
+            bridge.TestApplyDisplayMode.restype = c.c_int
+            # Distinct edge colors prove crop removes edges while stretch preserves them.
+            geometry = output / 'geometry.ppm'
+            geometry.write_bytes(b'P6\n320 240\n255\n' + b''.join(
+                bytes((240, 220, 20) if y < 30 else (200, 20, 220) if y >= 210 else
+                      (240, 20, 20) if x < 30 else (20, 20, 240) if x >= 290 else (20, 220, 20))
+                for y in range(240) for x in range(320)))
+            command('loadfile', geometry)
+            pump(0.5)
+            user32.SetWindowPos.argtypes = [w.HWND, w.HWND, c.c_int, c.c_int, c.c_int, c.c_int, w.UINT]
+            # Windowed and fullscreen-sized embedded hosts use the same geometry.
+            for host_width, host_height in ((800, 450), (1280, 720)):
+                user32.SetWindowPos(hwnd, None, -3000, -3000, host_width, host_height, 0x4 | 0x10)
+                pump(0.2)
+                for mode, label in enumerate(('fit', 'crop', 'stretch')):
+                    assert bridge.TestApplyDisplayMode(player, mode)
+                    pump(0.3)
+                    rendered = output / f'display-{label}-{host_width}.png'
+                    command('screenshot-to-file', rendered, 'window')
+                    img_width, img_height, at = read_png(rendered)
+                    assert (img_width, img_height) == (host_width, host_height)
+                    side = at(25, host_height // 2)
+                    top = at(host_width // 2, 20)
+                    if label == 'fit':
+                        assert max(side) < 5, side
+                        assert top[0] > 180 and top[1] > 160 and top[2] < 50, top
+                    elif label == 'crop':
+                        assert side[0] > 180 and side[1] < 50, side
+                        assert top[1] > 160 and top[0] < 50, top
+                    else:
+                        assert side[0] > 180 and side[1] < 50, side
+                        assert top[0] > 180 and top[1] > 160 and top[2] < 50, top
+                    assert prop('border-background') == 'color'
+                    assert prop('background-blur-radius') == '25.000000'
+            assert bridge.TestApplyDisplayMode(player, 0)
+            checked(dll.mpv_set_property_string(player, b'border-background', b'blur'))
+            pump(0.3)
+            command('screenshot-to-file', output / 'display-fit-blur.png', 'window')
+            assert prop('border-background') == 'blur'
+            print('PASS: native Fit/Crop/Stretch pixels at two host sizes; ambient blur remains usable')
         print('PASS: shipped mpv.conf/input.conf; default blur and live toggling; shader modes and files; FSR rendering; audio/subtitle/pause/speed bindings')
     finally:
         dll.mpv_terminate_destroy(player)

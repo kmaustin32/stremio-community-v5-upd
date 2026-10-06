@@ -7,6 +7,10 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 option(DEBUG_LOG "Allow debug logs" ON)
 include(cmake/ForkDefaults.cmake)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/webview/fork-player.js")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/webview/fork-player.js" FORK_PLAYER_SCRIPT)
+configure_file(cmake/ForkWebAssets.h.in generated/ForkWebAssets.h @ONLY)
 
 # Locate MPV
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -59,6 +63,7 @@ set(SOURCES
         src/mpv/player.h
         src/mpv/player.cpp
         src/mpv/ambient.cpp
+        src/mpv/display_mode.cpp
         src/node/server.cpp
         src/node/server.h
         src/tray/tray.h
@@ -79,6 +84,7 @@ set(SOURCES
 )
 
 add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -114,6 +120,20 @@ if(BUILD_TESTING)
     add_executable(discord-tests tests/discord_test.cpp)
     target_link_libraries(discord-tests PRIVATE nlohmann_json::nlohmann_json ${DISCORD_LIB})
     add_test(NAME discord-presence COMMAND discord-tests)
+    add_executable(display-tests tests/display_mode_test.cpp src/mpv/display_mode.cpp)
+    set_target_properties(display-tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/display-tests")
+    target_include_directories(display-tests PRIVATE src)
+    target_link_libraries(display-tests PRIVATE ${MPV_LIBRARY})
+    add_test(NAME display-modes COMMAND display-tests)
+    # Python's embedded rendering test calls the same native implementation.
+    add_library(display-test-bridge SHARED tests/display_bridge.cpp src/mpv/display_mode.cpp)
+    set_target_properties(display-test-bridge PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/display-bridge")
+    target_include_directories(display-test-bridge PRIVATE src)
+    target_link_libraries(display-test-bridge PRIVATE ${MPV_LIBRARY})
+    add_custom_command(TARGET display-tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MPV_RUNTIME_DLLS} $<TARGET_FILE_DIR:display-tests>)
 endif()
 
 # Copy MPV DLL

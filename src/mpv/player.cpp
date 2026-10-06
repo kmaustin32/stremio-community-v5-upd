@@ -1,5 +1,6 @@
 #include "player.h"
 #include "ambient.h"
+#include "display_mode.h"
 #include <iostream>
 #include <cctype>
 #include "../core/globals.h"
@@ -85,6 +86,17 @@ void HandleMpvEvents()
 
         switch(ev->event_id)
         {
+        case MPV_EVENT_FILE_LOADED:
+            if (!ApplyDisplayMode(g_mpv, DisplayMode::Fit))
+                AppendToCrashLog("[MPV]: Could not reset display mode to Fit");
+            [[fallthrough]];
+        case MPV_EVENT_VIDEO_RECONFIG:
+        {
+            int64_t width = 0;
+            const bool active = mpv_get_property(g_mpv, "video-params/w", MPV_FORMAT_INT64, &width) >= 0 && width > 0;
+            NotifyDisplayModeState(active);
+            break;
+        }
         case MPV_EVENT_PROPERTY_CHANGE:
         {
             mpv_event_property* prop=(mpv_event_property*)ev->data;
@@ -140,6 +152,7 @@ void HandleMpvEvents()
         }
         case MPV_EVENT_END_FILE:
         {
+            NotifyDisplayModeState(false);
             mpv_event_end_file* ef=(mpv_event_end_file*)ev->data;
             nlohmann::json j;
             j["type"]="mpv-event-ended";

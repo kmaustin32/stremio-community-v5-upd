@@ -1,0 +1,2 @@
+#pragma once
+inline constexpr wchar_t kForkPlayerScript[] = LR"FORKJS(@FORK_PLAYER_SCRIPT@)FORKJS";

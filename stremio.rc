@@ -5,3 +5,6 @@
 
 IDR_MAINFRAME ICON "images/stremio2.ico"
 IDR_SPLASH_PNG RCDATA "images/stremio.png"
+IDR_BRAND_SYMBOL RCDATA "images/web-symbol.png"
+IDR_BRAND_WORDMARK RCDATA "images/web-logo.png"
+IDR_BRAND_ICON RCDATA "images/stremio2.png"

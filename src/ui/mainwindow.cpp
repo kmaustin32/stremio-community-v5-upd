@@ -12,6 +12,7 @@
 #include "../utils/config.h"
 #include "../mpv/player.h"
 #include "../mpv/ambient.h"
+#include "../mpv/display_mode.h"
 #include "../tray/tray.h"
 #include "../ui/splash.h"
 #include "../webview/webview.h"
@@ -140,10 +141,28 @@ static void ToggleAmbientBorders()
     }
 }
 
+void NotifyDisplayModeState(bool active)
+{
+    if (g_webview) SendToJS("display-mode-changed", {
+        {"mode", DisplayModeName(CurrentDisplayMode())}, {"active", active}});
+}
+
+static bool HasNativeVideo()
+{
+    int64_t width = 0;
+    return g_mpv && mpv_get_property(g_mpv, "video-params/w", MPV_FORMAT_INT64, &width) >= 0 && width > 0;
+}
+
 void HandleEvent(const std::string &ev, std::vector<std::string> &args)
 {
     if (ev == "toggle-border-blur") {
         ToggleAmbientBorders();
+    } else if (ev == "get-display-mode") {
+        NotifyDisplayModeState(HasNativeVideo());
+    } else if (ev == "cycle-display-mode") {
+        if (HasNativeVideo() && !CycleDisplayMode(g_mpv))
+            AppendToCrashLog("[MPV]: Could not change display mode");
+        NotifyDisplayModeState(HasNativeVideo());
     } else if(ev=="mpv-command"){
         // Allow list check
         std::string cmdName = args.empty() ? "" : ToLowerStr(args[0]);
@@ -461,6 +480,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case ID_TRAY_BORDER_BLUR:
             ToggleAmbientBorders();
             break;
+        case ID_TRAY_DISPLAY_MODE:
+        {
+            std::vector<std::string> args;
+            HandleEvent("cycle-display-mode", args);
+            break;
+        }
         case ID_TRAY_SHOWWINDOW:
             g_showWindow = !g_showWindow;
             ShowWindow(hWnd, g_showWindow?SW_SHOW:SW_HIDE);
