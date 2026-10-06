@@ -37,6 +37,8 @@ jobs:
           test "$tag_sha" = "$run_sha"
           result=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/jobs" --jq '.jobs[] | select(.name == "build") | .conclusion')
           test "$result" = success
+          git show "$RELEASE_TAG:build/dependencies.lock.json" > release-dependencies.lock.json
+          git show "$RELEASE_TAG:docs/RELEASE-mpv.md" > release-notes.md
       - uses: actions/download-artifact@v8
         with:
           name: Windows-x64
@@ -51,13 +53,15 @@ jobs:
           sha256sum -c SHA256SUMS.txt
           cd ..
           python - <<'PY'
-          import hashlib, json, pathlib, urllib.request
+          import hashlib, json, pathlib, shutil, urllib.request
           root = pathlib.Path('dependency-files')
           root.mkdir()
-          lock = json.loads(pathlib.Path('build/dependencies.lock.json').read_text())
+          lock = json.loads(pathlib.Path('release-dependencies.lock.json').read_text())
           for asset in lock['assets'].values():
               target = root / asset['name']
-              urllib.request.urlretrieve(asset['url'], target)
+              request = urllib.request.Request(asset['url'], headers={'User-Agent': 'Mozilla/5.0', 'Accept': 'application/octet-stream'})
+              with urllib.request.urlopen(request) as response, target.open('wb') as file:
+                  shutil.copyfileobj(response, file)
               assert hashlib.file_digest(target.open('rb'), 'sha256').hexdigest() == asset['sha256'], target
               print('Verified', target.name)
           PY
@@ -68,5 +72,5 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" --clobber release-files/* dependency-files/*
           else
-            gh release create "$RELEASE_TAG" --title "Stremio 5.0.22 - mpv 0.41 ambient blur" --notes-file docs/RELEASE-mpv.md release-files/* dependency-files/*
+            gh release create "$RELEASE_TAG" --title "Stremio 5.0.22 - mpv 0.41 ambient blur" --notes-file release-notes.md release-files/* dependency-files/*
           fi
