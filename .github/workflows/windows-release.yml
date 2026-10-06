@@ -96,6 +96,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: Dependency-archives
+          include-hidden-files: true
+          if-no-files-found: error
           path: |
             .build-cache/mpv*.7z
             .build-cache/ffmpeg*.zip

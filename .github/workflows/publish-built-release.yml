@@ -1,0 +1,72 @@
+name: Publish an existing tested build
+on:
+  push:
+    branches: ['codex/mpv-ambient-blur']
+    paths: ['.github/workflows/publish-built-release.yml']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag for the tested commit
+        required: true
+        default: v5.0.22-mpv.1
+      source_run:
+        description: Workflow run containing the successful Windows build
+        required: true
+        default: '37442259813'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v5.0.22-mpv.1' }}
+      SOURCE_RUN: ${{ inputs.source_run || '37442259813' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify the build passed for exactly the tagged commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          tag_sha=$(git rev-parse "$RELEASE_TAG^{commit}")
+          run_sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" --jq .head_sha)
+          test "$tag_sha" = "$run_sha"
+          result=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/jobs" --jq '.jobs[] | select(.name == "build") | .conclusion')
+          test "$result" = success
+      - uses: actions/download-artifact@v8
+        with:
+          name: Windows-x64
+          path: release-files
+          run-id: ${{ env.SOURCE_RUN }}
+          github-token: ${{ github.token }}
+      - name: Verify application checksums and mirror pinned dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-files
+          sha256sum -c SHA256SUMS.txt
+          cd ..
+          python - <<'PY'
+          import hashlib, json, pathlib, urllib.request
+          root = pathlib.Path('dependency-files')
+          root.mkdir()
+          lock = json.loads(pathlib.Path('build/dependencies.lock.json').read_text())
+          for asset in lock['assets'].values():
+              target = root / asset['name']
+              urllib.request.urlretrieve(asset['url'], target)
+              assert hashlib.file_digest(target.open('rb'), 'sha256').hexdigest() == asset['sha256'], target
+              print('Verified', target.name)
+          PY
+      - name: Publish verified files from the successful Windows build
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" --clobber release-files/* dependency-files/*
+          else
+            gh release create "$RELEASE_TAG" --title "Stremio 5.0.22 - mpv 0.41 ambient blur" --notes-file docs/RELEASE-mpv.md release-files/* dependency-files/*
+          fi
