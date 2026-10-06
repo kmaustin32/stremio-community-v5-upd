@@ -79,6 +79,8 @@ jobs:
           $env:STREMIO_FFMPEG_DIR = "$pwd/.build-cache/media-tools"
           node build/deploy_windows.js --skip-build --installer
           if ($LASTEXITCODE) { throw 'Packaging failed' }
+          python tests/branding_package.py --exe dist/win-x64/stremio.exe --original .build-cache/upstream/stremio.exe --installer 'utils/Stremio 5.0.22-x64.exe'
+          if ($LASTEXITCODE) { throw 'Packaged application branding verification failed' }
           New-Item -ItemType Directory -Force out | Out-Null
           Copy-Item 'utils/Stremio 5.0.22-x64.exe' out/Stremio-5.0.22-mpv.3-x64.exe
           Compress-Archive -Path dist/win-x64/* -DestinationPath out/Stremio-5.0.22-mpv.3-x64.zip
@@ -141,4 +143,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          shopt -s nullglob
+          for file in dependency-files/*.exe; do
+            mv -- "$file" "${file%/*}/BUILD-ONLY-${file##*/}"
+          done
           gh release create "$GITHUB_REF_NAME" --title "Stremio 5.0.22 - purple branding and Fit/Crop/Stretch" --notes-file docs/RELEASE-mpv.md release-files/* dependency-files/*

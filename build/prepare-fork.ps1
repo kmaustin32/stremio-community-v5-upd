@@ -20,8 +20,18 @@ foreach ($entry in $lock.assets.PSObject.Properties) {
         catch {
             # mpv-winbuild only keeps 30 days of builds. Releases mirror these
             # exact archives so old commits remain reproducible.
-            $mirror = "https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/$($lock.mirrorRelease)/$($asset.name)"
-            Invoke-WebRequest $mirror -OutFile $archive
+            $downloaded = $false
+            # New releases label mirrored installers BUILD-ONLY so users cannot
+            # mistake the original application's installer for the fork build.
+            foreach ($mirrorName in @($asset.name, "BUILD-ONLY-$($asset.name)")) {
+                $mirror = "https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/$($lock.mirrorRelease)/$mirrorName"
+                try {
+                    Invoke-WebRequest $mirror -OutFile $archive
+                    $downloaded = $true
+                    break
+                } catch { continue }
+            }
+            if (!$downloaded) { throw "Pinned dependency unavailable: $($asset.name)" }
         }
     }
     if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $asset.sha256) {

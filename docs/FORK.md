@@ -11,6 +11,9 @@ D3D11 playback. Use Windows 10/11 x64.
 Download `Stremio-5.0.22-mpv.3-x64.exe` from this fork's release. The installer
 installs WebView2 when needed. The `.zip` is portable but requires the system
 WebView2 runtime. Extract the ZIP into its own directory and run `stremio.exe`.
+Use the installer whose filename contains `mpv.3`; **BUILD-ONLY** downloads are
+archived build dependencies. The original upstream installer is one such dependency
+and installs the original green-icon application, not this fork.
 
 Toggle **Ambient Border Blur** from the Stremio tray menu, or press **Ctrl+B**
 in the player. The preference survives restart. The menu checkmark reflects

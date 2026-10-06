@@ -1,3 +1,8 @@
+**Install this fork:** [Stremio-5.0.22-mpv.3-x64.exe](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.3/Stremio-5.0.22-mpv.3-x64.exe),
+or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.3/Stremio-5.0.22-mpv.3-x64.zip).
+Files beginning **BUILD-ONLY** are source build dependencies, not this fork's installer.
+Installing the original community dependency gives the original green icon and omits the fork features.
+
 Updated the embedded player to mpv 0.41.0-1101-g5d85ba5fb (zhongfly, 2026-10-05),
 with matching libplacebo 7.374.0, FFmpeg N-127213-g2da55bf59, headers and import library.
 The FFmpeg/FFprobe command-line tools use BtbN's 2026-10-05 build, N-127203-ga35c879992.
