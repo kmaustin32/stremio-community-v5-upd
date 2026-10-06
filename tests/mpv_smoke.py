@@ -63,6 +63,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dll', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--video', help='Optional encoded sample to exercise video decoding as well')
     args = parser.parse_args()
     output = pathlib.Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -123,12 +124,15 @@ def main():
         sample = output / 'sample.ppm'
         sample.write_bytes(b'P6\n320 240\n255\n' + b''.join(
             bytes((80 + x // 2, 80 + y // 2, 160)) for y in range(240) for x in range(320)))
+        if args.video:
+            sample = pathlib.Path(args.video).resolve()
         # Also prove the exact documented options work when loaded from mpv.conf.
         config = output / 'mpv.conf'
         config.write_text('vo=gpu-next\nborder-background=color\nbackground-blur-radius=16\n')
         for name, value in {'config': 'no', 'load-scripts': 'no', 'terminal': 'yes',
                             'wid': str(hwnd), 'gpu-api': 'd3d11', 'd3d11-warp': 'yes',
-                            'image-display-duration': 'inf', 'screenshot-high-bit-depth': 'no'}.items():
+                            'image-display-duration': 'inf', 'pause': 'yes',
+                            'screenshot-high-bit-depth': 'no'}.items():
             checked(dll.mpv_set_option_string(player, name.encode(), value.encode()))
         checked(dll.mpv_load_config_file(player, str(config).encode()))
         checked(dll.mpv_initialize(player))

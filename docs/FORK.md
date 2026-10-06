@@ -65,7 +65,10 @@ GitHub Actions compiles x64 with MSVC and static vcpkg dependencies pinned in
 library from the matching DLL and uses matching headers. FFmpeg and libplacebo
 are updated with mpv. The FFmpeg/FFprobe tools use BtbN's dated 2026-10-05
 build, N-127203-ga35c879992, with both utilities updated together. The
-original project's tested streaming runtime and server are retained.
+original project's tested streaming runtime is retained. A guarded build patch
+updates the server's removed `-vsync` and legacy `-async` flags to `-fps_mode:v` and
+the `aresample` filter. If a future server update changes that code, the build
+stops for review rather than silently applying an incompatible patch.
 
 For a local build, use an x64 Visual Studio Developer PowerShell with CMake,
 Ninja, 7-Zip, Python, Node, vcpkg, and NSIS available. Run `build/prepare-fork.ps1`,
@@ -75,10 +78,15 @@ toolchain, then build. Run CTest, `node --test tests/shortcut.test.js`, and
 
 Tests cover native mpv.conf parsing, live toggling, persisted state, restart,
 unrelated configuration preservation, keyboard handling, and actual embedded
-gpu-next rendering with blur on/off using D3D11's software renderer. A release
+gpu-next rendering with blur on/off using D3D11's software renderer. Tests also
+verify FFmpeg encoding, FFprobe metadata and streaming server startup. A release
 tag matching `v*-mpv.*` publishes only after all build and test steps succeed.
 Check hardware playback, HDR and streaming on the target machine as well.
 
 The mpv publisher retains only 30 days of build archives. The release includes
+the original app's Discord watching status and buttons through a small SDK
+extension, tested against the actual compiled serializer.
+
+The release also includes
 the original checksum-verified dependency archives and the build script falls
 back to those mirrors, keeping this commit buildable after upstream cleanup.

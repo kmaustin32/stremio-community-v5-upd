@@ -104,6 +104,9 @@ if(BUILD_TESTING)
     add_test(NAME ambient-settings COMMAND ambient-tests)
     add_custom_command(TARGET ambient-tests POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MPV_DLL}" $<TARGET_FILE_DIR:ambient-tests>)
+    add_executable(discord-tests tests/discord_test.cpp)
+    target_link_libraries(discord-tests PRIVATE nlohmann_json::nlohmann_json ${DISCORD_LIB})
+    add_test(NAME discord-presence COMMAND discord-tests)
 endif()
 
 # Copy MPV DLL

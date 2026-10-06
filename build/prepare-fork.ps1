@@ -48,6 +48,7 @@ $windows = Join-Path $root 'utils/windows'
 foreach ($name in @('stremio-runtime.exe', 'server.js')) {
     Copy-Item (Join-Path $cache "upstream/$name") $windows -Force
 }
+Invoke-Checked 'node' @((Join-Path $PSScriptRoot 'patch-server.js'), (Join-Path $windows 'server.js'))
 foreach ($name in @('StremioServiceSetup.exe', 'MicrosoftEdgeWebview2Setup.exe')) {
     Copy-Item (Join-Path $cache "upstream/`$PLUGINSDIR/$name") $windows -Force
 }
@@ -71,6 +72,7 @@ if (!$SkipImportLibrary) {
     }
     Expand-Archive $discordArchive -DestinationPath $cache -Force
     $discordSource = Join-Path $cache "discord-rpc-$($lock.discordCommit)"
+    Invoke-Checked 'node' @((Join-Path $PSScriptRoot 'patch-discord.js'), $discordSource)
     Invoke-Checked 'cmake' @('-S', $discordSource, '-B', (Join-Path $cache 'discord-build'), '-G', 'Ninja',
         '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_EXAMPLES=OFF', '-DBUILD_SHARED_LIBS=OFF',
         '-DCMAKE_POLICY_VERSION_MINIMUM=3.5', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded',
