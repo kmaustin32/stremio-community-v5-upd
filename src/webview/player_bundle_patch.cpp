@@ -9,7 +9,8 @@ bool IsCommunityPlayerScript(const std::string& url)
     for (const char* prefix : {"https://stremio.zarg.me/",
             "https://zaarrg.github.io/stremio-web-shell-fixes/"}) {
         if (!url.starts_with(prefix)) continue;
-        const auto path = url.substr(std::char_traits<char>::length(prefix));
+        const auto path = url.substr(std::char_traits<char>::length(prefix),
+            url.find('?') == std::string::npos ? std::string::npos : url.find('?') - std::char_traits<char>::length(prefix));
         return path.size() == 56 && path.substr(40) == "/scripts/main.js" &&
             std::all_of(path.begin(), path.begin() + 40,
                 [](unsigned char c) { return std::isxdigit(c) != 0; });

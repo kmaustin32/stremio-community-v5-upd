@@ -19,6 +19,7 @@ void AppendToCrashLog(const std::string& text) { std::cerr << text << '\n'; }
 namespace {
 wil::com_ptr<ICoreWebView2> webview;
 wil::com_ptr<ICoreWebView2Controller> controller;
+wil::com_ptr<ICoreWebView2Environment> savedEnvironment;
 int pass = 0;
 bool checking = false;
 ULONGLONG navigationTime = 0;
@@ -38,17 +39,20 @@ void CheckPage(HWND window)
         Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptCompletedHandler>([window](HRESULT result, LPCWSTR value) -> HRESULT {
             checking = false;
             const std::wstring json = value ? value : L"";
-            if (FAILED(result) || json.find(L"patched\\\":true") == std::wstring::npos) {
+            if (FAILED(result) || (pass > 0 && json.find(L"patched\\\":true") == std::wstring::npos)) {
                 Fail("Actual WebView2 bootstrap did not execute the autoplay patch");
                 return S_OK;
             }
-            if (pass == 1) {
-                std::cout << "PASS: actual WebView2 executes patched bootstrap after a cached reload\n";
+            if (pass == 2) {
+                std::cout << "PASS: actual WebView2 patches an existing community cache and survives reload\n";
                 PostQuitMessage(0);
-            } else if (json.find(L"ready\\\":true") != std::wstring::npos || GetTickCount64() - navigationTime > 20000) {
+            } else if (json.find(L"ready\\\":true") != std::wstring::npos) {
+                if (pass == 0) SetupPlayerResources(savedEnvironment.get(), webview.get(), window);
                 ++pass;
                 KillTimer(window, 2);
                 webview->Reload();
+            } else if (GetTickCount64() - navigationTime > 30000) {
+                Fail("Community cache did not become ready for upgrade test");
             }
             return S_OK;
         }).Get());
@@ -92,7 +96,7 @@ int main()
                     controller = control;
                     controller->get_CoreWebView2(&webview);
                     controller->put_Bounds({0, 0, 1280, 720});
-                    SetupPlayerResources(environment.get(), webview.get(), window);
+                    savedEnvironment = environment;
                     EventRegistrationToken token;
                     webview->add_NavigationCompleted(Microsoft::WRL::Callback<ICoreWebView2NavigationCompletedEventHandler>(
                         [window](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
@@ -120,6 +124,7 @@ int main()
     if (controller) controller->Close();
     webview.reset();
     controller.reset();
+    savedEnvironment.reset();
     DestroyWindow(window);
     CoUninitialize();
     return static_cast<int>(message.wParam);

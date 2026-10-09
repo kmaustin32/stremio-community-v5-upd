@@ -68,8 +68,8 @@ void SetupPlayerResources(ICoreWebView2Environment* env, ICoreWebView2* webview,
     environment = env;
     wil::com_ptr<ICoreWebView2> base = webview;
     const auto resources = base.try_query<ICoreWebView2_22>();
-    for (const auto* filter : {L"https://stremio.zarg.me/*/scripts/main.js",
-            L"https://zaarrg.github.io/stremio-web-shell-fixes/*/scripts/main.js"}) {
+    for (const auto* filter : {L"https://stremio.zarg.me/*/scripts/main.js*",
+            L"https://zaarrg.github.io/stremio-web-shell-fixes/*/scripts/main.js*"}) {
         if (resources) {
             resources->AddWebResourceRequestedFilterWithRequestSourceKinds(filter,
                 COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL, COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_ALL);
@@ -84,8 +84,10 @@ void SetupPlayerResources(ICoreWebView2Environment* env, ICoreWebView2* webview,
             args->get_Request(&request);
             wil::unique_cotaskmem_string uri;
             if (!request || FAILED(request->get_Uri(&uri)) || !uri) return S_OK;
-            const std::string url = WStringToUtf8(uri.get());
-            if (!IsCommunityPlayerScript(url)) return S_OK;
+            const std::string rawUrl = WStringToUtf8(uri.get());
+            if (!IsCommunityPlayerScript(rawUrl)) return S_OK;
+            // Workbox precaching appends a revision query to the same public asset.
+            const std::string url = rawUrl.substr(0, rawUrl.find('?'));
             if (const auto cached = cache.find(url); cached != cache.end()) {
                 Respond(args, cached->second);
                 return S_OK;

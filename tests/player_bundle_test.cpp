@@ -12,6 +12,7 @@ int main()
     try {
         const std::string url = "https://stremio.zarg.me/6f6b0558dbb064bca18a8dcc22cb1f3f4c455b22/scripts/main.js";
         require(IsCommunityPlayerScript(url), "Accept community bootstrap");
+        require(IsCommunityPlayerScript(url + "?__WB_REVISION__=abcd"), "Accept service-worker revision query");
         require(!IsCommunityPlayerScript("https://evil.example/" + url), "Reject external URLs");
         require(!IsCommunityPlayerScript(url + "/other.js"), "Reject non-bootstrap paths");
         require(!IsCommunityPlayerScript("https://stremio.zarg.me/../scripts/main.js"), "Reject unversioned paths");

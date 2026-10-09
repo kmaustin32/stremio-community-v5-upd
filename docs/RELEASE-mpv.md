@@ -3,7 +3,7 @@ or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd
 Files beginning **BUILD-ONLY** are source build dependencies, not this fork's installer.
 Installing the original community dependency gives the original green icon and omits the fork features.
 
-- Auto play next episode now respects its setting when a video ends; completion and manual Next remain available.
+- Auto play next episode now respects its setting when a video ends and cancels open countdowns when disabled; completion and manual Next remain available.
 - Each new video starts at 100% volume. The slider shows an orange-to-red boost range above 100%.
 - Ctrl+Shift+F cycles Fit, Crop, and Stretch, synchronized with the button and tray menu.
 - Display controls use the official Stremio scaling icons, aligned with the other toolbar icons.
@@ -34,6 +34,7 @@ needed to run the application. `stremio-icon.png` is the public Discord branding
 
 GitHub Actions builds the application and runs configuration, toggle,
 persistence, restart, keyboard, streaming, transcoding, native display geometry,
-embedded D3D11 rendering at two sizes, and Edge player-control tests before publishing.
+embedded D3D11 rendering at two sizes, Edge player controls, live autoplay behavior,
+and native WebView2 cached-upgrade and reload tests before publishing.
 The build is unsigned. Hardware-specific playback and HDR require testing on
 the target machine.

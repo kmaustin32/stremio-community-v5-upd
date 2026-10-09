@@ -66,7 +66,7 @@ the next video resets to 100%. Muting remains independent. The volume slider
 keeps its configured maximum, with the range above 100% shaded orange to red.
 
 Turning off **Auto play next episode** now also disables advancement when the
-video ends. Manual Next still works, and completion/watch-progress handling
+video ends and cancels an open next-episode countdown. Manual Next still works, and completion/watch-progress handling
 remains intact. A scoped compatibility patch applies this setting check to the
 hosted community player's end handler and refreshes it when the setting changes.
 The original community UI and its other features remain hosted upstream. The
