@@ -29,12 +29,22 @@ test('Real community slider rescales clicks and drags after changing maximum vol
     const anchor = '(()=>{var e;o.g.importScripts';
     assert.ok(bundle.includes(anchor), 'Locate webpack bootstrap');
     const instrumented = bundle.replace(anchor, 'window.testRequire=o;window.testModules=a;return;' + anchor);
+    const patchedPath = '.build-cache/player-autoplay/patched.js';
+    const patched = fs.existsSync(patchedPath) ? fs.readFileSync(patchedPath, 'utf8') : '';
+    const verifiedPatch = patched.includes('__stremioForkVolumePatched=true');
+    if (process.env.CI) assert.ok(verifiedPatch, 'CI must use the C++-patched live player callback');
+    const callback = (verifiedPatch ? patched : bundle).match(/\.useCallback\((function\(([\w$]+)\)\{([\w$]+)\.setProp\("volume",Math\.min\(\2,Number\(([\w$]+)\.maxVolume\)\)\)\}),\[([^\]]*)\]\)/);
+    assert.ok(callback);
+    const callbackData = {source: callback[1], video: callback[3], storage: callback[4],
+        // Without a local C++ compiler, exercise the intended dependency locally;
+        // CI exercises the exact callback and dependency list produced by C++.
+        dependencies: verifiedPatch ? callback[5] : `${callback[4]}.maxVolume`};
     const browser = await chromium.launch({executablePath, headless: true});
     try {
         const page = await browser.newPage({viewport: {width: 1280, height: 720}});
         await page.setContent(`<html><head><style>${css}</style><style>body{background:#191727;color:white}.test-volume{width:320px!important;height:60px!important;margin:80px!important}</style></head><body><div id="app"></div></body></html>`);
         await page.addScriptTag({content: instrumented});
-        await page.evaluate(() => {
+        await page.evaluate(callbackData => {
             const req = window.testRequire, modules = window.testModules;
             const find = predicate => Object.values(modules).find(factory => predicate(factory.toString()));
             const volumeFactory = find(source => source.includes('volume-slider') && source.includes('maximumValue') && source.includes('.useStorage'));
@@ -61,20 +71,23 @@ test('Real community slider rescales clicks and drags after changing maximum vol
                 [dependency(volumeSource, 'useStorage')]: {useStorage: () => [React.useContext(storageContext)]}
             });
             window.sliderCalls = [];
+            const makeCallback = new Function(callbackData.video, callbackData.storage,
+                `return {handler: ${callbackData.source}, dependencies: [${callbackData.dependencies}]};`);
             function Harness() {
                 const [storage, setStorage] = React.useState({maxVolume: '130'});
                 const [volume, setVolume] = React.useState(100);
                 window.setMaximum = maximum => setStorage({maxVolume: String(maximum)});
-                const onVolume = React.useCallback(value => {
-                    const actual = Math.min(value, Number(storage.maxVolume));
-                    window.sliderCalls.push(actual);
-                    setVolume(actual);
-                }, [storage.maxVolume]);
+                const liveCallback = makeCallback({setProp: (name, value) => {
+                    if (name !== 'volume') throw Error('Unexpected property');
+                    window.sliderCalls.push(value);
+                    setVolume(value);
+                }}, storage);
+                const onVolume = React.useCallback(liveCallback.handler, liveCallback.dependencies);
                 return React.createElement(storageContext.Provider, {value: storage},
                     React.createElement(VolumeSlider, {className: 'test-volume', volume, muted: false, onVolumeChangeRequested: onVolume}));
             }
             ReactDOM.createRoot(document.querySelector('#app')).render(React.createElement(Harness));
-        });
+        }, callbackData);
         const slider = page.locator('.test-volume');
         await slider.waitFor();
         for (const maximum of [130, 225, 175, 100, 75, 200]) {
