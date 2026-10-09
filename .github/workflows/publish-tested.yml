@@ -14,9 +14,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     env:
-      TESTED_RUN: '37916610485'
-      TESTED_SHA: 'a777502b6ce4efd58d1d42e5a2bb262f521a1200'
-      RELEASE_TAG: 'v5.0.22-mpv.5'
+      TESTED_RUN: '37921801671'
+      TESTED_SHA: '66faaa067bdf9f9fa22d6467f27a7ee58d2b481a'
+      RELEASE_TAG: 'v5.0.22-mpv.6'
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Verify successful source build
@@ -26,11 +26,11 @@ jobs:
             '.conclusion == "success" and .status == "completed" and .head_sha == $sha and .head_repository.full_name == $repo and .name == "Windows build and release"' run.json
       - uses: actions/checkout@v7
         with:
-          ref: 'a777502b6ce4efd58d1d42e5a2bb262f521a1200'
+          ref: '66faaa067bdf9f9fa22d6467f27a7ee58d2b481a'
       - uses: actions/download-artifact@v8
         with:
           name: Windows-x64
-          run-id: '37916610485'
+          run-id: '37921801671'
           github-token: ${{ github.token }}
           path: release-files
       - name: Verify existing release tag
@@ -43,14 +43,14 @@ jobs:
         run: |
           cd release-files
           sha256sum --strict -c SHA256SUMS.txt
-          test -f Stremio-5.0.22-mpv.5-x64.exe
-          test -f Stremio-5.0.22-mpv.5-x64.zip
+          test -f Stremio-5.0.22-mpv.6-x64.exe
+          test -f Stremio-5.0.22-mpv.6-x64.zip
           test -f stremio-icon.png
           cd ..
           cp docs/RELEASE-mpv.md release-notes.md
           printf '\n\nBuilt and tested by [GitHub Actions](https://github.com/%s/actions/runs/%s) from commit %s. These downloads are the exact verified artifacts from that run.\n' "$GITHUB_REPOSITORY" "$TESTED_RUN" "$TESTED_SHA" >> release-notes.md
           gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
-            --title 'Stremio 5.0.22 - volume fixes, settings layout and PiP' --notes-file release-notes.md \
-            'release-files/Stremio-5.0.22-mpv.5-x64.exe#Windows installer - download this' \
-            'release-files/Stremio-5.0.22-mpv.5-x64.zip#Portable Windows application' \
+            --title 'Stremio 5.0.22 - reliable unwatched episode blur' --notes-file release-notes.md \
+            'release-files/Stremio-5.0.22-mpv.6-x64.exe#Windows installer - download this' \
+            'release-files/Stremio-5.0.22-mpv.6-x64.zip#Portable Windows application' \
             release-files/stremio-icon.png release-files/SHA256SUMS.txt
