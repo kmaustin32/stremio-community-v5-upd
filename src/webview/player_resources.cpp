@@ -139,3 +139,29 @@ void ShutdownPlayerResources()
     cache.clear();
     environment.reset();
 }
+
+void PreparePlayerScriptCache(ICoreWebView2Profile2* profile, const std::wstring& settings,
+    std::function<void()> ready)
+{
+    // An active Workbox worker can serve an older script before a network hook.
+    // Invalidate only CacheStorage once per patch revision; keep localStorage,
+    // IndexedDB, cookies and saved player configuration intact.
+    const std::string fingerprint = STREMIO_PLAYER_PATCH_REVISION;
+    const std::wstring expected(fingerprint.begin(), fingerprint.end());
+    wchar_t stored[128]{};
+    GetPrivateProfileStringW(L"General", L"PlayerScriptCacheRevision", L"", stored, 128, settings.c_str());
+    if (expected == stored) { ready(); return; }
+    const auto status = profile->ClearBrowsingData(COREWEBVIEW2_BROWSING_DATA_KINDS_CACHE_STORAGE,
+        Microsoft::WRL::Callback<ICoreWebView2ClearBrowsingDataCompletedHandler>(
+        [settings, expected, ready](HRESULT result) -> HRESULT {
+            if (SUCCEEDED(result))
+                WritePrivateProfileStringW(L"General", L"PlayerScriptCacheRevision", expected.c_str(), settings.c_str());
+            else AppendToCrashLog("[WEBVIEW]: Could not refresh the community player script cache");
+            ready();
+            return S_OK;
+        }).Get());
+    if (FAILED(status)) {
+        AppendToCrashLog("[WEBVIEW]: Could not start the community player cache refresh");
+        ready();
+    }
+}

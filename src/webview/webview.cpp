@@ -346,6 +346,8 @@ void InitWebView2(HWND hWnd)
                     SetupExtensions();
                     SetupWebMessageHandler();
 
+                    PreparePlayerScriptCache(g_webviewProfile.get(),
+                        GetExeDirectory() + L"\\portable_config\\stremio-settings.ini", [] {
                     std::thread([](){
                         std::wcout << L"[WEBVIEW]: Checking web ui endpoints..." << std::endl;
                         std::wstring foundUrl = GetFirstReachableUrl();
@@ -354,6 +356,7 @@ void InitWebView2(HWND hWnd)
                         PostMessage(g_hWnd, WM_REACHABILITY_DONE, (WPARAM)pResult, 0);
                         FetchAndParseWhitelist();
                     }).detach();
+                    });
                     return S_OK;
                 }).Get()
             );

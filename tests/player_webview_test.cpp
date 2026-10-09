@@ -47,7 +47,18 @@ void CheckPage(HWND window)
                 std::cout << "PASS: actual WebView2 patches an existing community cache and survives reload\n";
                 PostQuitMessage(0);
             } else if (json.find(L"ready\\\":true") != std::wstring::npos) {
-                if (pass == 0) SetupPlayerResources(savedEnvironment.get(), webview.get(), window);
+                if (pass == 0) {
+                    SetupPlayerResources(savedEnvironment.get(), webview.get(), window);
+                    wil::com_ptr<ICoreWebView2Profile> baseProfile;
+                    webview.try_query<ICoreWebView2_13>()->get_Profile(&baseProfile);
+                    const auto testProfile = baseProfile.try_query<ICoreWebView2Profile2>();
+                    KillTimer(window, 2);
+                    PreparePlayerScriptCache(testProfile.get(), profile + L"\\fork-player-test.ini", [] {
+                        ++pass;
+                        webview->Reload();
+                    });
+                    return S_OK;
+                }
                 ++pass;
                 KillTimer(window, 2);
                 webview->Reload();

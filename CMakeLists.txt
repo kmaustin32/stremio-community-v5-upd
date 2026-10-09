@@ -22,6 +22,12 @@ endforeach()
 # adjacent per-line literals while preserving its exact text.
 string(REPLACE "\n" "\n)FORKJS\"\nLR\"FORKJS(" FORK_PLAYER_SCRIPT "${FORK_PLAYER_SCRIPT}")
 configure_file(cmake/ForkWebAssets.h.in generated/ForkWebAssets.h @ONLY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/webview/player_bundle_patch.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/webview/player_resources.cpp")
+file(SHA256 src/webview/player_bundle_patch.cpp bundle_revision)
+file(SHA256 src/webview/player_resources.cpp loader_revision)
+string(SHA256 PLAYER_PATCH_REVISION "${bundle_revision}${loader_revision}")
 
 # Locate MPV
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -119,6 +125,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG_LOG)
 target_compile_definitions(${PROJECT_NAME} PRIVATE STREMIO_DEFAULT_UPDATE_URL="${STREMIO_UPDATE_URL}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE STREMIO_PLAYER_PATCH_REVISION="${PLAYER_PATCH_REVISION}")
 
 include(CTest)
 if(BUILD_TESTING)
@@ -127,6 +134,7 @@ if(BUILD_TESTING)
     add_executable(player-bundle-patch tests/player_bundle_patch.cpp src/webview/player_bundle_patch.cpp)
     add_executable(player-webview-test tests/player_webview_test.cpp src/webview/player_resources.cpp src/webview/player_bundle_patch.cpp)
     target_link_libraries(player-webview-test PRIVATE unofficial::webview2::webview2 CURL::libcurl shlwapi.lib ole32.lib)
+    target_compile_definitions(player-webview-test PRIVATE STREMIO_PLAYER_PATCH_REVISION="${PLAYER_PATCH_REVISION}")
     add_executable(ambient-tests tests/ambient_test.cpp src/mpv/ambient.cpp)
     # Keep test DLL copies separate from the application's parallel post-build copy.
     set_target_properties(ambient-tests PROPERTIES

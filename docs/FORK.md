@@ -73,6 +73,10 @@ The original community UI and its other features remain hosted upstream. The
 patch validates the handler shape; unknown upstream changes are left untouched
 and logged. CI tests the live upstream bundle before publishing, so source
 updates that change this integration require review.
+On the first launch of a changed compatibility patch, the app refreshes the
+web player's CacheStorage before loading the UI. A patch fingerprint records
+the migration; later launches reuse the refreshed cache. Local settings,
+cookies, login storage and player configuration are preserved.
 
 The native app, splash, installer/uninstaller, web UI branding, return button,
 and default Discord logo use **#7272c2**. The original logo silhouettes, white
