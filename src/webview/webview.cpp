@@ -14,6 +14,7 @@
 #include "../utils/extensions.h"
 #include "../resource.h"
 #include "ForkWebAssets.h"
+#include "player_resources.h"
 
 static std::wstring EmbeddedBrandImage(int resourceId)
 {
@@ -104,6 +105,16 @@ static const wchar_t* INJECTED_KEYDOWN_SCRIPT = LR"JS(
             if (!event.repeat) window.chrome.webview.postMessage(JSON.stringify({
                 type: 6, object: 'transport', method: 'handleInboundJSON', id: 1000,
                 args: ['toggle-border-blur', []]
+            }));
+            return;
+        }
+        if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey &&
+            event.code === 'KeyF' && !editable) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (!event.repeat) window.chrome.webview.postMessage(JSON.stringify({
+                type: 6, object: 'transport', method: 'handleInboundJSON', id: 1002,
+                args: ['cycle-display-mode', []]
             }));
             return;
         }
@@ -279,7 +290,7 @@ void InitWebView2(HWND hWnd)
             env->CreateCoreWebView2Controller(
                 hWnd,
                 Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                [hWnd](HRESULT result, ICoreWebView2Controller* rawController)->HRESULT
+                [hWnd, environment = wil::com_ptr<ICoreWebView2Environment>(env)](HRESULT result, ICoreWebView2Controller* rawController)->HRESULT
                 {
                     if (FAILED(result) || !rawController) return E_FAIL;
                     std::cout << "[WEBVIEW]: Initializing WebView..." << std::endl;
@@ -328,6 +339,7 @@ void InitWebView2(HWND hWnd)
                     g_webview->AddScriptToExecuteOnDocumentCreated(INJECTED_KEYDOWN_SCRIPT,nullptr);
                     const std::wstring forkScript = WithBrandImages(kForkPlayerScript);
                     g_webview->AddScriptToExecuteOnDocumentCreated(forkScript.c_str(), nullptr);
+                    SetupPlayerResources(environment.get(), g_webview.get(), hWnd);
 
                     SetupWebMods();
 

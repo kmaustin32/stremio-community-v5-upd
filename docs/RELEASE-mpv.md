@@ -1,9 +1,14 @@
-**Install this fork:** [Stremio-5.0.22-mpv.3-x64.exe](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.3/Stremio-5.0.22-mpv.3-x64.exe),
-or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.3/Stremio-5.0.22-mpv.3-x64.zip).
+**Install this fork:** [Stremio-5.0.22-mpv.4-x64.exe](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.4/Stremio-5.0.22-mpv.4-x64.exe),
+or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.4/Stremio-5.0.22-mpv.4-x64.zip).
 Files beginning **BUILD-ONLY** are source build dependencies, not this fork's installer.
 Installing the original community dependency gives the original green icon and omits the fork features.
 
-Updated the embedded player to mpv 0.41.0-1101-g5d85ba5fb (zhongfly, 2026-10-05),
+- Auto play next episode now respects its setting when a video ends; completion and manual Next remain available.
+- Each new video starts at 100% volume. The slider shows an orange-to-red boost range above 100%.
+- Ctrl+Shift+F cycles Fit, Crop, and Stretch, synchronized with the button and tray menu.
+- Display controls use the official Stremio scaling icons, aligned with the other toolbar icons.
+
+The embedded player uses mpv 0.41.0-1101-g5d85ba5fb (zhongfly, 2026-10-05),
 with matching libplacebo 7.374.0, FFmpeg N-127213-g2da55bf59, headers and import library.
 The FFmpeg/FFprobe command-line tools use BtbN's 2026-10-05 build, N-127203-ga35c879992.
 The streaming server's sync options are adapted for the new FFmpeg version.
@@ -22,7 +27,7 @@ an existing system Vulkan runtime.
 - Automatic upstream binary updates are disabled to preserve fork features.
 - Upstream source updates can be merged into the fork; see the included README-fork.md.
 
-Download **Stremio-5.0.22-mpv.3-x64.exe** for installation, or the **.zip** for
+Download **Stremio-5.0.22-mpv.4-x64.exe** for installation, or the **.zip** for
 portable use with an installed WebView2 runtime. SHA256SUMS.txt verifies these
 downloads. The remaining archives preserve build dependencies and are not
 needed to run the application. `stremio-icon.png` is the public Discord branding asset.

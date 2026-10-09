@@ -1,6 +1,7 @@
 #include "player.h"
 #include "ambient.h"
 #include "display_mode.h"
+#include "playback_defaults.h"
 #include <iostream>
 #include <cctype>
 #include "../core/globals.h"
@@ -87,8 +88,10 @@ void HandleMpvEvents()
         switch(ev->event_id)
         {
         case MPV_EVENT_FILE_LOADED:
-            if (!ApplyDisplayMode(g_mpv, DisplayMode::Fit))
-                AppendToCrashLog("[MPV]: Could not reset display mode to Fit");
+            // Each video starts at normal full volume, independently of the last video.
+            g_currentVolume = 100;
+            if (!ApplyVideoStartDefaults(g_mpv))
+                AppendToCrashLog("[MPV]: Could not reset video to 100% volume and Fit");
             [[fallthrough]];
         case MPV_EVENT_VIDEO_RECONFIG:
         {

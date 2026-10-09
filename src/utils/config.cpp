@@ -88,7 +88,7 @@ void LoadSettings()
     char narrowVO[32];
     WideCharToMultiByte(CP_UTF8, 0, voBuffer, -1, narrowVO, 32, NULL, NULL);
     g_initialVO = narrowVO;
-    g_currentVolume = GetPrivateProfileIntW(L"MPV", L"InitialVolume", 50, iniPath.c_str());
+    g_currentVolume = 100;
 
     // [Security] default-deny allow-lists
     static const wchar_t* kDefCmds =

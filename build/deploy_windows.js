@@ -82,6 +82,7 @@ const VCPKG_CMAKE = process.env.VCPKG_ROOT
         const builtExe = path.join(BUILD_DIR, `${PROJECT_NAME}.exe`);
         const distExe = path.join(DIST_DIR, `${PROJECT_NAME}.exe`);
         copyFile(builtExe, distExe);
+        copyFile(path.join(SOURCE_DIR, 'images/player/NOTICE.md'), path.join(DIST_DIR, 'Stremio-icons-LICENSE.txt'));
 
         // 6) Copy mpv DLL, server.js, node.exe
         copyFile(MPV_DLL, path.join(DIST_DIR, path.basename(MPV_DLL)));

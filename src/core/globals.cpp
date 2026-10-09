@@ -32,7 +32,7 @@ mpv_handle* g_mpv = nullptr;
 std::set<std::string> g_observedProps;
 bool g_initialSet = false;
 std::string g_initialVO = "gpu-next";
-int g_currentVolume = 50;
+int g_currentVolume = 100;
 const std::vector<std::wstring> g_subtitleExtensions = {
     L".srt", L".ass", L".ssa", L".sub", L".vtt", L".ttml",
     L".dfxp", L".smi", L".sami", L".sup", L".scc",

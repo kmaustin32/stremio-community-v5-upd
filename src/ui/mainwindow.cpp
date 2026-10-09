@@ -13,6 +13,7 @@
 #include "../mpv/player.h"
 #include "../mpv/ambient.h"
 #include "../mpv/display_mode.h"
+#include "../webview/player_resources.h"
 #include "../tray/tray.h"
 #include "../ui/splash.h"
 #include "../webview/webview.h"
@@ -184,8 +185,6 @@ void HandleEvent(const std::string &ev, std::vector<std::string> &args)
             }
             std::vector<std::string> voArgs = {"vo", IsBorderBlurEnabled(g_mpv) ? "gpu-next" : g_initialVO};
             HandleMpvSetProp(voArgs);
-            std::vector<std::string> volumeArgs = {"volume", std::to_string(g_currentVolume)};
-            HandleMpvSetProp(volumeArgs);
             g_initialSet = true;
         }
         HandleMpvCommand(args);
@@ -645,8 +644,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MPV_WAKEUP:
         HandleMpvEvents();
         break;
+    case WM_FORK_PLAYER_RESOURCE:
+        CompletePlayerResource(lParam);
+        break;
     case WM_DESTROY:
     {
+        ShutdownPlayerResources();
         // release mutex
         if(g_hMutex) { CloseHandle(g_hMutex); g_hMutex=nullptr; }
         PostQuitMessage(0);

@@ -10,6 +10,14 @@ include(cmake/ForkDefaults.cmake)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/webview/fork-player.js")
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/webview/fork-player.js" FORK_PLAYER_SCRIPT)
+foreach(mode fit crop stretch)
+    set(icon "${CMAKE_CURRENT_SOURCE_DIR}/images/player/video-scale-${mode}.svg")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${icon}")
+    file(READ "${icon}" svg)
+    string(STRIP "${svg}" svg)
+    string(TOUPPER "${mode}" marker)
+    string(REPLACE "__FORK_${marker}_SVG__" "${svg}" FORK_PLAYER_SCRIPT "${FORK_PLAYER_SCRIPT}")
+endforeach()
 configure_file(cmake/ForkWebAssets.h.in generated/ForkWebAssets.h @ONLY)
 
 # Locate MPV
@@ -64,6 +72,7 @@ set(SOURCES
         src/mpv/player.cpp
         src/mpv/ambient.cpp
         src/mpv/display_mode.cpp
+        src/mpv/playback_defaults.cpp
         src/node/server.cpp
         src/node/server.h
         src/tray/tray.h
@@ -74,6 +83,8 @@ set(SOURCES
         src/updater/updater.h
         src/webview/webview.h
         src/webview/webview.cpp
+        src/webview/player_bundle_patch.cpp
+        src/webview/player_resources.cpp
         src/ui/mainwindow.h
         src/ui/mainwindow.cpp
         src/resource.h
@@ -108,6 +119,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE STREMIO_DEFAULT_UPDATE_URL="$
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(player-bundle-tests tests/player_bundle_test.cpp src/webview/player_bundle_patch.cpp)
+    add_test(NAME player-autoplay-guard COMMAND player-bundle-tests)
+    add_executable(player-bundle-patch tests/player_bundle_patch.cpp src/webview/player_bundle_patch.cpp)
     add_executable(ambient-tests tests/ambient_test.cpp src/mpv/ambient.cpp)
     # Keep test DLL copies separate from the application's parallel post-build copy.
     set_target_properties(ambient-tests PROPERTIES
@@ -120,7 +134,7 @@ if(BUILD_TESTING)
     add_executable(discord-tests tests/discord_test.cpp)
     target_link_libraries(discord-tests PRIVATE nlohmann_json::nlohmann_json ${DISCORD_LIB})
     add_test(NAME discord-presence COMMAND discord-tests)
-    add_executable(display-tests tests/display_mode_test.cpp src/mpv/display_mode.cpp)
+    add_executable(display-tests tests/display_mode_test.cpp src/mpv/display_mode.cpp src/mpv/playback_defaults.cpp)
     set_target_properties(display-tests PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/display-tests")
     target_include_directories(display-tests PRIVATE src)

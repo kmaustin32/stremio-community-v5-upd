@@ -8,10 +8,10 @@ D3D11 playback. Use Windows 10/11 x64.
 
 ## Install and use
 
-Download `Stremio-5.0.22-mpv.3-x64.exe` from this fork's release. The installer
+Download `Stremio-5.0.22-mpv.4-x64.exe` from this fork's release. The installer
 installs WebView2 when needed. The `.zip` is portable but requires the system
 WebView2 runtime. Extract the ZIP into its own directory and run `stremio.exe`.
-Use the installer whose filename contains `mpv.3`; **BUILD-ONLY** downloads are
+Use the installer whose filename contains `mpv.4`; **BUILD-ONLY** downloads are
 archived build dependencies. The original upstream installer is one such dependency
 and installs the original green-icon application, not this fork.
 
@@ -48,7 +48,9 @@ chain remains commented out, so shaders activate only when selected.
 
 ## Fit, Crop, and Stretch
 
-The player toolbar includes a display button that cycles **Fit → Crop → Stretch**.
+The player toolbar includes a display button that cycles **Fit → Crop → Stretch**,
+using the official Stremio scaling icons and matching the other controls.
+**Ctrl+Shift+F** performs the same cycle and updates the button and tray state.
 Fit preserves the complete picture and its proportions. Crop fills the player
 while keeping proportions, cutting off the edges as needed. Stretch fills the
 player by changing the picture's proportions. New videos reset to Fit; changing
@@ -57,6 +59,20 @@ The control preserves ambient blur, shaders, and subtitle styling. The tray's
 **Display** item provides the same cycle if the web toolbar is unavailable.
 Crop fills the player with the encoded frame; it does not detect black bars
 encoded inside the video.
+
+Every new video starts at **100% volume**, including when upgrading with an
+older saved InitialVolume value. Adjustments apply to the current video;
+the next video resets to 100%. Muting remains independent. The volume slider
+keeps its configured maximum, with the range above 100% shaded orange to red.
+
+Turning off **Auto play next episode** now also disables advancement when the
+video ends. Manual Next still works, and completion/watch-progress handling
+remains intact. A scoped compatibility patch applies this setting check to the
+hosted community player's end handler and refreshes it when the setting changes.
+The original community UI and its other features remain hosted upstream. The
+patch validates the handler shape; unknown upstream changes are left untouched
+and logged. CI tests the live upstream bundle before publishing, so source
+updates that change this integration require review.
 
 The native app, splash, installer/uninstaller, web UI branding, return button,
 and default Discord logo use **#7272c2**. The original logo silhouettes, white
@@ -82,7 +98,8 @@ git merge upstream/webview-windows
 
 Resolve any conflicts while retaining `src/mpv/ambient.*`, `src/mpv/display_mode.*`,
 `src/webview/fork-player.js`, `cmake/ForkWebAssets.h.in`, the branded assets and
-resource mappings, the integration calls, `cmake/ForkDefaults.cmake`, and the fork's workflow. Run the release
+resource mappings, `src/mpv/playback_defaults.*`, `src/webview/player_bundle_patch.*`,
+`src/webview/player_resources.*`, the integration calls, `cmake/ForkDefaults.cmake`, and the fork's workflow. Run the release
 checks before publishing. Source updates cannot be guaranteed conflict-free.
 
 Automatic application updates are disabled by default because the original

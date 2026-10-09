@@ -1,4 +1,5 @@
 #include "mpv/display_mode.h"
+#include "mpv/playback_defaults.h"
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -28,8 +29,12 @@ int main()
         mpv_set_option_string(player, "background-blur-radius", "25");
         mpv_set_option_string(player, "sub-ass-override", "force");
         require(mpv_initialize(player) >= 0, "Initialize player");
-        require(ApplyDisplayMode(player, DisplayMode::Fit), "Initial fit");
+        mpv_set_property_string(player, "volume", "33");
+        require(ApplyVideoStartDefaults(player), "Start video with Fit and full normal volume");
+        require(property(player, "volume") == "100.000000", "Previous volume does not carry over");
+        mpv_set_property_string(player, "volume", "115");
         require(CycleDisplayMode(player) && CurrentDisplayMode() == DisplayMode::Crop, "Fit to crop");
+        require(property(player, "volume") == "115.000000", "Mode cycle preserves the current volume");
         require(property(player, "panscan") == "1.000000", "Crop fills window");
         require(property(player, "keepaspect") == "yes", "Crop keeps proportions");
         require(CycleDisplayMode(player) && CurrentDisplayMode() == DisplayMode::Stretch, "Crop to stretch");
@@ -42,7 +47,8 @@ int main()
         require(property(player, "background-blur-radius") == "25.000000", "Keep blur radius");
         require(property(player, "sub-ass-override") == "force", "Keep subtitle styling");
         require(ApplyDisplayMode(player, DisplayMode::Stretch), "Change before next video");
-        require(ApplyDisplayMode(player, DisplayMode::Fit) && CurrentDisplayMode() == DisplayMode::Fit, "Reset for new video");
+        require(ApplyVideoStartDefaults(player) && CurrentDisplayMode() == DisplayMode::Fit, "Reset for next video");
+        require(property(player, "volume") == "100.000000", "Next video resets boosted volume");
         require(!CycleDisplayMode(nullptr), "Missing player cannot cycle");
         require(!ApplyDisplayMode(player, static_cast<DisplayMode>(99)), "Invalid mode cannot change settings");
         mpv_terminate_destroy(player);
