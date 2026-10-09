@@ -67,6 +67,13 @@ jobs:
           $env:NODE_PATH = "$pwd/.build-cache/ui-test/node_modules"
           node --test tests/player_controls.test.js
           if ($LASTEXITCODE) { throw 'Player UI tests failed' }
+      - name: Test native WebView2 bootstrap and cached reload
+        shell: pwsh
+        run: |
+          choco install webview2-runtime -y --no-progress
+          if ($LASTEXITCODE -and $LASTEXITCODE -ne 3010) { throw 'Test WebView2 runtime installation failed' }
+          ./cmake-build-release-x64/player-webview-test.exe
+          if ($LASTEXITCODE) { throw 'Native WebView2 autoplay integration test failed' }
       - name: Install packaging tools
         shell: pwsh
         run: |

@@ -75,5 +75,5 @@ test('Live community player respects autoplay without losing completion or manua
     const originalTarget = original.match(/\.useCallback\((function\(\)\{[^{}]*window\.history\.back\(\)[^{}]*\}),\[([^\]]+)\]\)/);
     const originalPopup = original.match(/\.useEffect\((function\(\)\{[^{}]*\.bingeWatching[^{}]*\}),\[([^\]]+)\]\)/);
     assert.equal(script.replace(target[0], originalTarget[0]).replace(popup[0], originalPopup[0])
-        .replace('/* StremioForkAutoplayGuard */', ''), original);
+        .replace('\n;window.__stremioForkAutoplayPatched=true;/* StremioForkAutoplayGuard */', ''), original);
 });

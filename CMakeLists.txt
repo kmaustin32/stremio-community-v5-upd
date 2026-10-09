@@ -125,6 +125,8 @@ if(BUILD_TESTING)
     add_executable(player-bundle-tests tests/player_bundle_test.cpp src/webview/player_bundle_patch.cpp)
     add_test(NAME player-autoplay-guard COMMAND player-bundle-tests)
     add_executable(player-bundle-patch tests/player_bundle_patch.cpp src/webview/player_bundle_patch.cpp)
+    add_executable(player-webview-test tests/player_webview_test.cpp src/webview/player_resources.cpp src/webview/player_bundle_patch.cpp)
+    target_link_libraries(player-webview-test PRIVATE unofficial::webview2::webview2 CURL::libcurl shlwapi.lib ole32.lib)
     add_executable(ambient-tests tests/ambient_test.cpp src/mpv/ambient.cpp)
     # Keep test DLL copies separate from the application's parallel post-build copy.
     set_target_properties(ambient-tests PROPERTIES

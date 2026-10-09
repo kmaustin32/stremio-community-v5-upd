@@ -85,6 +85,7 @@ bool PatchPlayerAutoplay(std::string& script, std::string& error)
     std::sort(edits.begin(), edits.end(), [](const Edit& a, const Edit& b) { return a.pos > b.pos; });
     // Preserve ended() and history.back(), and leave manual Next unchanged.
     for (const auto& edit : edits) script.replace(edit.pos, edit.length, edit.text);
+    script += "\n;window.__stremioForkAutoplayPatched=true;";
     script += marker;
     return true;
 }
