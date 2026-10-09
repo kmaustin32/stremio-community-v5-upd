@@ -60,10 +60,10 @@ test('Unwatched episode images keep blur across fallback, seasons, watch state, 
                 73582: {useTranslation: () => ({t: key => key})}, 4672: {default: Icon}
             });
             function Harness() {
-                const [state, setState] = React.useState({hideSpoilers: true, watched: false, season: 3, episode: 1, source: 'missing'});
+                const [state, setState] = React.useState({hideSpoilers: true, watched: false, season: 3, episode: 1, source: 'missing', alternateSource: 'alternate'});
                 window.changeEpisode = changes => setState(previous => ({...previous, ...changes}));
                 const primary = `https://episode.test/${state.source}/${state.season}/${state.episode}.svg`;
-                const alternate = `https://episode.test/alternate/1/${54 + state.episode}.svg`;
+                const alternate = `https://episode.test/${state.alternateSource}/1/${54 + state.episode}.svg`;
                 const videoProps = {id: `tt0290223:${state.season}:${state.episode}`, title: 'Test episode',
                     season: state.season, episode: state.episode, thumbnail: primary, altThumbnail: alternate,
                     watched: state.watched, progress: 0, upcoming: false, scheduled: false,
@@ -105,6 +105,10 @@ test('Unwatched episode images keep blur across fallback, seasons, watch state, 
         await check({season: 0, episode: 0}, true);
         await check({season: null, episode: null}, false); // Non-episodic artwork stays clear.
         await check({season: 3, episode: 1}, true);
+        await page.evaluate(() => window.changeEpisode({alternateSource: 'missing'}));
+        await page.waitForFunction(() => document.querySelectorAll('.show-list img,.player-list img,.next-fixture img').length === 0 &&
+            document.querySelectorAll('[data-placeholder]').length === 3);
+        await check({alternateSource: 'alternate'}, true); // Recover after both image sources failed.
         const output = process.env.STREMIO_UI_TEST_OUTPUT || '.build-cache/ui-test-evidence';
         fs.mkdirSync(output, {recursive: true});
         await page.screenshot({path: path.join(output, 'episode-blur-fallback.png')});
