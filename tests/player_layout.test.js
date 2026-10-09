@@ -24,14 +24,14 @@ async function communityAssets() {
 
 test('Real community slider rescales clicks and drags after changing maximum volume', async () => {
     const [bundle, css] = await communityAssets();
-    // Expose webpack's existing modules before app startup. Components and their
-    // slider hooks run unchanged; only services and the storage provider are fixtures.
+    // Expose webpack's existing modules before app startup. Slider components
+    // and StorageProvider run unchanged; routing and native services are fixtures.
     const anchor = '(()=>{var e;o.g.importScripts';
     assert.ok(bundle.includes(anchor), 'Locate webpack bootstrap');
-    const instrumented = bundle.replace(anchor, 'window.testRequire=o;window.testModules=a;return;' + anchor);
     const patchedPath = '.build-cache/player-autoplay/patched.js';
     const patched = fs.existsSync(patchedPath) ? fs.readFileSync(patchedPath, 'utf8') : '';
     const verifiedPatch = patched.includes('__stremioForkVolumePatched=true');
+    const instrumented = (verifiedPatch ? patched : bundle).replace(anchor, 'window.testRequire=o;window.testModules=a;return;' + anchor);
     if (process.env.CI) assert.ok(verifiedPatch, 'CI must use the C++-patched live player callback');
     const callback = (verifiedPatch ? patched : bundle).match(/\.useCallback\((function\(([\w$]+)\)\{([\w$]+)\.setProp\("volume",Math\.min\(\2,Number\(([\w$]+)\.maxVolume\)\)\)\}),\[([^\]]*)\]\)/);
     assert.ok(callback);
@@ -42,7 +42,8 @@ test('Real community slider rescales clicks and drags after changing maximum vol
     const browser = await chromium.launch({executablePath, headless: true});
     try {
         const page = await browser.newPage({viewport: {width: 1280, height: 720}});
-        await page.setContent(`<html><head><style>${css}</style><style>body{background:#191727;color:white}.test-volume{width:320px!important;height:60px!important;margin:80px!important}</style></head><body><div id="app"></div></body></html>`);
+        await page.route('https://stremio.zarg.me/**', route => route.fulfill({contentType: 'text/html', body: `<html><head><style>${css}</style><style>body{background:#191727;color:white}.test-volume{width:320px!important;height:60px!important;margin:80px!important}</style></head><body><div id="app"></div></body></html>`}));
+        await page.goto('https://stremio.zarg.me/#/player/volume-test');
         await page.addScriptTag({content: instrumented});
         await page.evaluate(callbackData => {
             const req = window.testRequire, modules = window.testModules;
@@ -52,7 +53,6 @@ test('Real community slider rescales clicks and drags after changing maximum vol
             if (!volumeFactory || !sliderFactory) throw Error('Missing live slider components');
             const dependency = (source, property) => Number(source.match(new RegExp(`a\\((\\d+)\\)\\.${property}`))[1]);
             const React = req(30758), ReactDOM = req(99576);
-            const storageContext = React.createContext(null);
             function load(factory, overrides) {
                 const module = {exports: {}};
                 const custom = Object.assign(id => Object.hasOwn(overrides, id) ? overrides[id] : req(id), req);
@@ -60,6 +60,9 @@ test('Real community slider rescales clicks and drags after changing maximum vol
                 return module.exports;
             }
             const sliderSource = sliderFactory.toString();
+            const storageFactory = find(source => source.includes('StorageProvider=function') && source.includes('localStorage.setItem("localProfile"'));
+            if (!storageFactory) throw Error('Missing live StorageProvider');
+            const storageModule = load(storageFactory, {});
             const Slider = load(sliderFactory, {
                 [dependency(sliderSource, 'useRouteFocused')]: {useRouteFocused: () => true},
                 [dependency(sliderSource, 'useServices')]: {useServices: () => ({shell: {active: false}})}
@@ -68,25 +71,27 @@ test('Real community slider rescales clicks and drags after changing maximum vol
             const VolumeSlider = load(volumeFactory, {
                 [dependency(volumeSource, 'useRouteFocused')]: {useRouteFocused: () => true},
                 [dependency(volumeSource, 'Slider')]: {Slider},
-                [dependency(volumeSource, 'useStorage')]: {useStorage: () => [React.useContext(storageContext)]}
+                [dependency(volumeSource, 'useStorage')]: storageModule
             });
             window.sliderCalls = [];
+            window.maximumEvents = [];
+            window.addEventListener('stremio-fork-volume-limit', event => window.maximumEvents.push(event.detail));
             const makeCallback = new Function(callbackData.video, callbackData.storage,
                 `return {handler: ${callbackData.source}, dependencies: [${callbackData.dependencies}]};`);
             function Harness() {
-                const [storage, setStorage] = React.useState({maxVolume: '130'});
+                const [storage, updateStorage] = storageModule.useStorage();
                 const [volume, setVolume] = React.useState(100);
-                window.setMaximum = maximum => setStorage({maxVolume: String(maximum)});
+                window.setMaximum = maximum => updateStorage({maxVolume: String(maximum)});
                 const liveCallback = makeCallback({setProp: (name, value) => {
                     if (name !== 'volume') throw Error('Unexpected property');
                     window.sliderCalls.push(value);
                     setVolume(value);
                 }}, storage);
                 const onVolume = React.useCallback(liveCallback.handler, liveCallback.dependencies);
-                return React.createElement(storageContext.Provider, {value: storage},
-                    React.createElement(VolumeSlider, {className: 'test-volume', volume, muted: false, onVolumeChangeRequested: onVolume}));
+                return React.createElement(VolumeSlider, {className: 'test-volume', volume, muted: false, onVolumeChangeRequested: onVolume});
             }
-            ReactDOM.createRoot(document.querySelector('#app')).render(React.createElement(Harness));
+            ReactDOM.createRoot(document.querySelector('#app')).render(
+                React.createElement(storageModule.StorageProvider, null, React.createElement(Harness)));
         }, callbackData);
         const slider = page.locator('.test-volume');
         await slider.waitFor();
@@ -94,6 +99,8 @@ test('Real community slider rescales clicks and drags after changing maximum vol
             await page.evaluate(maximum => window.setMaximum(maximum), maximum);
             // Let the real useLiveRef layout hooks observe the new React props.
             await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('localProfile')).maxVolume), String(maximum));
+            if (verifiedPatch) assert.equal(await page.evaluate(() => window.maximumEvents.at(-1)), maximum, 'Real StorageProvider notifies the live native cap');
             const bounds = await slider.boundingBox();
             await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
             assert.ok(Math.abs(await page.evaluate(() => window.sliderCalls.at(-1)) - maximum / 2) < 1);

@@ -35,7 +35,7 @@ void CheckPage(HWND window)
 {
     if (!webview || checking) return;
     checking = true;
-    webview->ExecuteScript(L"JSON.stringify({patched:window.__stremioForkAutoplayPatched===true&&window.__stremioForkVolumePatched===true,maximum:window.__testVolumeLimit,ready:window.__forkSwReady===true})",
+    webview->ExecuteScript(L"JSON.stringify({patched:window.__stremioForkAutoplayPatched===true&&window.__stremioForkVolumePatched===true,maximum:Number(JSON.parse(localStorage.getItem('localProfile')||'{}').maxVolume||130),ready:window.__forkSwReady===true})",
         Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptCompletedHandler>([window](HRESULT result, LPCWSTR value) -> HRESULT {
             checking = false;
             const std::wstring json = value ? value : L"";
@@ -44,7 +44,7 @@ void CheckPage(HWND window)
                 return S_OK;
             }
             if (pass > 0 && json.find(pass == 1 ? L"maximum\\\":130" : L"maximum\\\":225") == std::wstring::npos) {
-                Fail("Actual StorageProvider did not notify the selected maximum volume");
+                Fail("Cached upgrade did not preserve the saved maximum volume");
                 return S_OK;
             }
             if (pass == 2) {
@@ -117,8 +117,6 @@ int main()
                     controller->get_CoreWebView2(&webview);
                     controller->put_Bounds({0, 0, 1280, 720});
                     savedEnvironment = environment;
-                    webview->AddScriptToExecuteOnDocumentCreated(
-                        L"window.addEventListener('stremio-fork-volume-limit',event=>window.__testVolumeLimit=event.detail)", nullptr);
                     EventRegistrationToken token;
                     webview->add_NavigationCompleted(Microsoft::WRL::Callback<ICoreWebView2NavigationCompletedEventHandler>(
                         [window](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
