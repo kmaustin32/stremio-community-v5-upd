@@ -48,7 +48,8 @@ test('Unwatched episode images keep blur across fallback, seasons, watch state, 
             const Image = load(imageFactory).default;
             const Button = React.forwardRef(({children, className, title, onClick}, ref) => React.createElement('button', {className, title, onClick, ref}, children));
             const Popup = props => React.createElement(props.renderLabel, props);
-            const Icon = () => React.createElement('svg', {'data-placeholder': true});
+            const Icon = ({className, name}) => React.createElement('svg', {className, 'data-icon': name,
+                'data-placeholder': className?.includes('placeholder-icon') ? true : undefined});
             const useProfile = () => React.useContext(profileContext);
             const common = {Button, Popup, Image};
             const Video = load(videoFactory, {
