@@ -1,0 +1,50 @@
+name: Publish tested Windows build
+
+on:
+  push:
+    branches: ['codex/mpv-ambient-blur']
+    paths: ['.github/workflows/publish-tested.yml']
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      TESTED_RUN: '37908956634'
+      TESTED_SHA: '635915f9a2295ca98f1f68b9131674887a986cfc'
+      RELEASE_TAG: 'v5.0.22-mpv.4'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify successful source build
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$TESTED_RUN" > run.json
+          jq -e --arg sha "$TESTED_SHA" --arg repo "$GITHUB_REPOSITORY" \
+            '.conclusion == "success" and .status == "completed" and .head_sha == $sha and .head_repository.full_name == $repo and .name == "Windows build and release"' run.json
+      - uses: actions/checkout@v7
+        with:
+          ref: '635915f9a2295ca98f1f68b9131674887a986cfc'
+      - uses: actions/download-artifact@v8
+        with:
+          name: Windows-x64
+          run-id: '37908956634'
+          github-token: ${{ github.token }}
+          path: release-files
+      - name: Verify artifacts and publish
+        run: |
+          cd release-files
+          sha256sum --strict -c SHA256SUMS.txt
+          test -f Stremio-5.0.22-mpv.4-x64.exe
+          test -f Stremio-5.0.22-mpv.4-x64.zip
+          test -f stremio-icon.png
+          cd ..
+          cp docs/RELEASE-mpv.md release-notes.md
+          printf '\n\nBuilt and tested by [GitHub Actions](https://github.com/%s/actions/runs/%s) from commit %s. These downloads are the exact verified artifacts from that run.\n' "$GITHUB_REPOSITORY" "$TESTED_RUN" "$TESTED_SHA" >> release-notes.md
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$TESTED_SHA" --latest \
+            --title 'Stremio 5.0.22 - autoplay fix and player controls' --notes-file release-notes.md \
+            'release-files/Stremio-5.0.22-mpv.4-x64.exe#Windows installer - download this' \
+            'release-files/Stremio-5.0.22-mpv.4-x64.zip#Portable Windows application' \
+            release-files/stremio-icon.png release-files/SHA256SUMS.txt
