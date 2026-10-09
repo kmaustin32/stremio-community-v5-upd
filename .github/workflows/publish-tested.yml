@@ -33,6 +33,12 @@ jobs:
           run-id: '37916610485'
           github-token: ${{ github.token }}
           path: release-files
+      - name: Verify existing release tag
+        run: |
+          # A maintainer creates the tag after tests pass. The Actions token
+          # cannot create tags at commits that change workflow files.
+          tag_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')
+          test "$tag_sha" = "$TESTED_SHA"
       - name: Verify artifacts and publish
         run: |
           cd release-files
@@ -43,7 +49,7 @@ jobs:
           cd ..
           cp docs/RELEASE-mpv.md release-notes.md
           printf '\n\nBuilt and tested by [GitHub Actions](https://github.com/%s/actions/runs/%s) from commit %s. These downloads are the exact verified artifacts from that run.\n' "$GITHUB_REPOSITORY" "$TESTED_RUN" "$TESTED_SHA" >> release-notes.md
-          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$TESTED_SHA" --latest \
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
             --title 'Stremio 5.0.22 - volume fixes, settings layout and PiP' --notes-file release-notes.md \
             'release-files/Stremio-5.0.22-mpv.5-x64.exe#Windows installer - download this' \
             'release-files/Stremio-5.0.22-mpv.5-x64.zip#Portable Windows application' \
