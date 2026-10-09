@@ -53,7 +53,27 @@ test('Live community player respects autoplay without losing completion or manua
         onEnded();
         assert.deepEqual(calls, [], 'Do not navigate twice during an existing navigation');
     }
-    // Everything except this callback and its dependency list stays byte-for-byte identical.
+    const popup = script.match(/\.useEffect\((function\(\)\{[^{}]*\.bingeWatching[^{}]*\}),\[([^\]]+)\]\)/);
+    assert.ok(popup, 'Locate the actual countdown effect');
+    assert.ok(popup[2].includes(`${setting}.bingeWatching`));
+    const videoName = popup[1].match(/(\w+)\.state\.time/)[1];
+    const dismissedName = popup[1].match(/!(\w+)\.current/)[1];
+    const openName = popup[1].match(/NotificationDuration\?(\w+)\(\)/)[1];
+    const closeName = popup[1].match(/:(\w+)\(\)\)\:/)[1];
+    for (const autoplay of [true, false]) for (const dismissed of [true, false]) {
+        const calls = [];
+        const context = {
+            [setting]: {bingeWatching: autoplay, nextVideoNotificationDuration: 30000},
+            [core]: {nextVideo: {episode: 2}}, [dismissedName]: {current: dismissed},
+            [videoName]: {state: {time: 90000, duration: 100000}},
+            [openName]: () => calls.push('open'), [closeName]: () => calls.push('close')
+        };
+        vm.runInNewContext(`(${popup[1]})`, context)();
+        assert.deepEqual(calls, [autoplay && !dismissed ? 'open' : 'close']);
+    }
+    // Everything except these two callbacks and their dependencies stays identical.
     const originalTarget = original.match(/\.useCallback\((function\(\)\{[^{}]*window\.history\.back\(\)[^{}]*\}),\[([^\]]+)\]\)/);
-    assert.equal(script.replace(target[0], originalTarget[0]).replace('/* StremioForkAutoplayGuard */', ''), original);
+    const originalPopup = original.match(/\.useEffect\((function\(\)\{[^{}]*\.bingeWatching[^{}]*\}),\[([^\]]+)\]\)/);
+    assert.equal(script.replace(target[0], originalTarget[0]).replace(popup[0], originalPopup[0])
+        .replace('/* StremioForkAutoplayGuard */', ''), original);
 });

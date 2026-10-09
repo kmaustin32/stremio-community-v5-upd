@@ -18,6 +18,9 @@ foreach(mode fit crop stretch)
     string(TOUPPER "${mode}" marker)
     string(REPLACE "__FORK_${marker}_SVG__" "${svg}" FORK_PLAYER_SCRIPT "${FORK_PLAYER_SCRIPT}")
 endforeach()
+# MSVC limits individual wide string literals. Keep the embedded script in
+# adjacent per-line literals while preserving its exact text.
+string(REPLACE "\n" "\n)FORKJS\"\nLR\"FORKJS(" FORK_PLAYER_SCRIPT "${FORK_PLAYER_SCRIPT}")
 configure_file(cmake/ForkWebAssets.h.in generated/ForkWebAssets.h @ONLY)
 
 # Locate MPV

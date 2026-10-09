@@ -16,13 +16,15 @@ int main()
         require(!IsCommunityPlayerScript(url + "/other.js"), "Reject non-bootstrap paths");
         require(!IsCommunityPlayerScript("https://stremio.zarg.me/../scripts/main.js"), "Reject unversioned paths");
         std::string script = "pt=l.useCallback(function(){te.nextVideo=Ot.current,Lt.current||(re(),null!==te.nextVideo?Qt():window.history.back())},[te.nextVideo,Qt]);"
-            "l.useEffect(function(){Te.bingeWatching&&null!==te.nextVideo&&!ut.current},[te.nextVideo]);";
+            "l.useEffect(function(){Te.bingeWatching&&null!==te.nextVideo&&!ut.current&&(null!==Oe.state.time&&null!==Oe.state.duration&&Oe.state.time<Oe.state.duration&&Oe.state.duration-Oe.state.time<=Te.nextVideoNotificationDuration?it():ot())},[te.nextVideo,Oe.state.time,Oe.state.duration]);";
         std::string error;
         require(PatchPlayerAutoplay(script, error), "Patch known end callback");
         require(script.find("re(),Te.bingeWatching&&null!==te.nextVideo?Qt():window.history.back()") != std::string::npos,
             "Keep completion and back navigation, gate autoplay");
         require(script.find("[te.nextVideo,Qt,Te.bingeWatching]") != std::string::npos,
             "Refresh callback when setting changes");
+        require(script.find(":ot()},[te.nextVideo,Oe.state.time,Oe.state.duration,Te.bingeWatching,Te.nextVideoNotificationDuration]") != std::string::npos,
+            "Close popup when autoplay is disabled, dismissed, or settings change");
         const auto patched = script;
         require(PatchPlayerAutoplay(script, error) && script == patched, "Patch is idempotent");
         std::string unknown = "new unknown upstream implementation";
