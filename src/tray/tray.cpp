@@ -327,21 +327,29 @@ static LRESULT CALLBACK DarkTrayMenuProc(HWND hWnd, UINT msg, WPARAM wParam, LPA
 
 void TogglePictureInPicture(HWND hWnd, bool enable)
 {
+    if (enable == g_isPipMode) return;
+    static bool previousAlwaysOnTop = false;
+    if (enable && g_isFullscreen) {
+        ToggleFullScreen(hWnd, false);
+        if (g_webview) g_webview->ExecuteScript(L"if(document.fullscreenElement)document.exitFullscreen();", nullptr);
+    }
     LONG style = GetWindowLong(hWnd, GWL_STYLE);
     if(enable) {
+        previousAlwaysOnTop = g_alwaysOnTop;
         g_alwaysOnTop = true;
         style &= ~WS_CAPTION;
         SetWindowLong(hWnd, GWL_STYLE, style);
         SetWindowPos(hWnd, HWND_TOPMOST,0,0,0,0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_FRAMECHANGED);
     } else {
-        g_alwaysOnTop = false;
+        g_alwaysOnTop = previousAlwaysOnTop;
         style |= WS_CAPTION;
         SetWindowLong(hWnd, GWL_STYLE, style);
-        SetWindowPos(hWnd, HWND_NOTOPMOST,0,0,0,0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_FRAMECHANGED);
+        SetWindowPos(hWnd, g_alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,0,0,0,0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_FRAMECHANGED);
     }
     g_isPipMode = enable;
 
     if(g_webview) {
+        SendToJS("picture-in-picture-changed", {{"enabled", enable}});
         nlohmann::json j;
         if(enable)
             SendToJS("showPictureInPicture", j);

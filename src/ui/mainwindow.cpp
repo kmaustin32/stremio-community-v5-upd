@@ -13,6 +13,7 @@
 #include "../mpv/player.h"
 #include "../mpv/ambient.h"
 #include "../mpv/display_mode.h"
+#include "../mpv/playback_defaults.h"
 #include "../webview/player_resources.h"
 #include "../tray/tray.h"
 #include "../ui/splash.h"
@@ -77,6 +78,7 @@ void ToggleFullScreen(HWND hWnd, bool enable)
 {
     static WINDOWPLACEMENT prevPlc={sizeof(prevPlc)};
     if(enable==g_isFullscreen) return;
+    if (enable && g_isPipMode) TogglePictureInPicture(hWnd, false);
     g_isFullscreen = enable;
 
     if(enable){
@@ -156,7 +158,18 @@ static bool HasNativeVideo()
 
 void HandleEvent(const std::string &ev, std::vector<std::string> &args)
 {
-    if (ev == "toggle-border-blur") {
+    if (ev == "set-volume-limit" && args.size() == 1) {
+        try {
+            size_t consumed = 0;
+            const double maximum = std::stod(args[0], &consumed);
+            if (consumed == args[0].size() && !ApplyMaximumVolume(g_mpv, maximum))
+                AppendToCrashLog("[MPV]: Could not apply maximum volume");
+        } catch (const std::exception&) { /* Ignore invalid settings. */ }
+    } else if (ev == "get-picture-in-picture") {
+        if (g_webview) SendToJS("picture-in-picture-changed", {{"enabled", g_isPipMode}});
+    } else if (ev == "toggle-picture-in-picture") {
+        TogglePictureInPicture(g_hWnd, !g_isPipMode);
+    } else if (ev == "toggle-border-blur") {
         ToggleAmbientBorders();
     } else if (ev == "get-display-mode") {
         NotifyDisplayModeState(HasNativeVideo());

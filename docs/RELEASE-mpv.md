@@ -1,10 +1,13 @@
-**Install this fork:** [Stremio-5.0.22-mpv.4-x64.exe](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.4/Stremio-5.0.22-mpv.4-x64.exe),
-or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.4/Stremio-5.0.22-mpv.4-x64.zip).
+**Install this fork:** [Stremio-5.0.22-mpv.5-x64.exe](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.5/Stremio-5.0.22-mpv.5-x64.exe),
+or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.5/Stremio-5.0.22-mpv.5-x64.zip).
 Files beginning **BUILD-ONLY** are source build dependencies, not this fork's installer.
 Installing the original community dependency gives the original green icon and omits the fork features.
 
 - Auto play next episode now respects its setting when a video ends and cancels open countdowns when disabled; completion and manual Next remain available.
-- Each new video starts at 100% volume. The slider shows an orange-to-red boost range above 100%.
+- Changing Maximum Volume now rescales the slider and updates actual mpv amplification immediately, including 150–225% above the previous 130% cap. Lower limits clamp current playback. Keyboard and wheel controls also use the live setting.
+- Each new video starts at 100% volume, or at the selected maximum if it is lower. The slider keeps its orange-to-red boost range above 100%.
+- Settings labels have more room before the options column and wrap instead of being cut off. Narrow windows stack labels and controls.
+- Picture-in-Picture is available beside fullscreen at the top of the player, with the Loukious-style icon and matching control sizing. It toggles the community shell's borderless, always-on-top mode and stays synchronized with the tray.
 - Ctrl+Shift+F cycles Fit, Crop, and Stretch, synchronized with the button and tray menu.
 - Display controls use the official Stremio scaling icons, aligned with the other toolbar icons.
 
@@ -27,14 +30,15 @@ an existing system Vulkan runtime.
 - Automatic upstream binary updates are disabled to preserve fork features.
 - Upstream source updates can be merged into the fork; see the included README-fork.md.
 
-Download **Stremio-5.0.22-mpv.4-x64.exe** for installation, or the **.zip** for
+Download **Stremio-5.0.22-mpv.5-x64.exe** for installation, or the **.zip** for
 portable use with an installed WebView2 runtime. SHA256SUMS.txt verifies these
 downloads. The remaining archives preserve build dependencies and are not
 needed to run the application. `stremio-icon.png` is the public Discord branding asset.
 
 GitHub Actions builds the application and runs configuration, toggle,
 persistence, restart, keyboard, streaming, transcoding, native display geometry,
-embedded D3D11 rendering at two sizes, Edge player controls, live autoplay behavior,
+embedded D3D11 rendering at two sizes, Edge player controls, real community slider dragging,
+responsive settings layout, live autoplay and max-volume behavior,
 and native WebView2 cached-upgrade and reload tests before publishing.
 The build is unsigned. Hardware-specific playback and HDR require testing on
 the target machine.

@@ -17,7 +17,10 @@ int main()
         require(!IsCommunityPlayerScript(url + "/other.js"), "Reject non-bootstrap paths");
         require(!IsCommunityPlayerScript("https://stremio.zarg.me/../scripts/main.js"), "Reject unversioned paths");
         std::string script = "pt=l.useCallback(function(){te.nextVideo=Ot.current,Lt.current||(re(),null!==te.nextVideo?Qt():window.history.back())},[te.nextVideo,Qt]);"
-            "l.useEffect(function(){Te.bingeWatching&&null!==te.nextVideo&&!ut.current&&(null!==Oe.state.time&&null!==Oe.state.duration&&Oe.state.time<Oe.state.duration&&Oe.state.duration-Oe.state.time<=Te.nextVideoNotificationDuration?it():ot())},[te.nextVideo,Oe.state.time,Oe.state.duration]);";
+            "l.useEffect(function(){Te.bingeWatching&&null!==te.nextVideo&&!ut.current&&(null!==Oe.state.time&&null!==Oe.state.duration&&Oe.state.time<Oe.state.duration&&Oe.state.duration-Oe.state.time<=Te.nextVideoNotificationDuration?it():ot())},[te.nextVideo,Oe.state.time,Oe.state.duration]);"
+            "bt=l.useCallback(function(e){Oe.setProp(\"volume\",Math.min(e,Number(le.maxVolume)))},[]);"
+            "localStorage.setItem(\"localProfile\",JSON.stringify(i));"
+            "l.useLayoutEffect(function(){return function(){window.removeEventListener(\"wheel\",onWheel)}},[Oe.state.volume]);";
         std::string error;
         require(PatchPlayerAutoplay(script, error), "Patch known end callback");
         require(script.find("re(),Te.bingeWatching&&null!==te.nextVideo?Qt():window.history.back()") != std::string::npos,
@@ -26,10 +29,20 @@ int main()
             "Refresh callback when setting changes");
         require(script.find(":ot()},[te.nextVideo,Oe.state.time,Oe.state.duration,Te.bingeWatching,Te.nextVideoNotificationDuration]") != std::string::npos,
             "Close popup when autoplay is disabled, dismissed, or settings change");
+        require(script.find("Number(le.maxVolume)))},[le.maxVolume])") != std::string::npos,
+            "Refresh volume callback with live maximum");
+        require(script.find("detail:Number(i.maxVolume)") != std::string::npos,
+            "Send native limit updates from StorageProvider");
+        require(script.find("[Oe.state.volume,bt]") != std::string::npos, "Refresh keyboard and wheel volume handlers");
         const auto patched = script;
         require(PatchPlayerAutoplay(script, error) && script == patched, "Patch is idempotent");
         std::string unknown = "new unknown upstream implementation";
         require(!PatchPlayerAutoplay(unknown, error) && unknown == "new unknown upstream implementation", "Unknown shape stays intact");
+        std::string partial = "pt=l.useCallback(function(){te.nextVideo=Ot.current,Lt.current||(re(),null!==te.nextVideo?Qt():window.history.back())},[te.nextVideo,Qt]);"
+            "l.useEffect(function(){Te.bingeWatching&&null!==te.nextVideo&&!ut.current&&(time?it():ot())},[te.nextVideo]);";
+        const auto unchanged = partial;
+        require(!PatchPlayerAutoplay(partial, error) && partial == unchanged,
+            "Missing volume shape leaves the whole bundle intact");
         std::cout << "PASS: scoped autoplay guard preserves completion and upstream code\n";
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

@@ -60,17 +60,28 @@ The control preserves ambient blur, shaders, and subtitle styling. The tray's
 Crop fills the player with the encoded frame; it does not detect black bars
 encoded inside the video.
 
-Every new video starts at **100% volume**, including when upgrading with an
+Every new video starts at **100% volume** (or a lower selected maximum), including when upgrading with an
 older saved InitialVolume value. Adjustments apply to the current video;
 the next video resets to 100%. Muting remains independent. The volume slider
 keeps its configured maximum, with the range above 100% shaded orange to red.
+Changing **Maximum Volume** updates both the slider and mpv's amplification
+limit immediately, including values above the original 130% cap. Lowering the
+maximum clamps any currently boosted volume. Keyboard and wheel controls follow
+the same setting, and changing videos keeps the maximum while resetting volume.
+
+The top player navbar includes a **Picture-in-Picture** toggle beside fullscreen,
+matching Loukious's icon and placement. It uses the community shell's existing
+borderless, always-on-top mode, synchronized with the tray toggle. Exiting restores
+the previous always-on-top preference. Fullscreen and picture-in-picture are
+mutually exclusive. Long settings labels wrap, with more room before the options
+column and stacked controls in narrow windows.
 
 Turning off **Auto play next episode** now also disables advancement when the
 video ends and cancels an open next-episode countdown. Manual Next still works, and completion/watch-progress handling
 remains intact. A scoped compatibility patch applies this setting check to the
 hosted community player's end handler and refreshes it when the setting changes.
 The original community UI and its other features remain hosted upstream. The
-patch validates the handler shape; unknown upstream changes are left untouched
+patch validates autoplay, live maximum-volume storage, and keyboard handler shapes; unknown upstream changes are left untouched
 and logged. CI tests the live upstream bundle before publishing, so source
 updates that change this integration require review.
 On the first launch of a changed compatibility patch, the app refreshes the

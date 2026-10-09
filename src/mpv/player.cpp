@@ -3,6 +3,7 @@
 #include "display_mode.h"
 #include "playback_defaults.h"
 #include <iostream>
+#include <algorithm>
 #include <cctype>
 #include "../core/globals.h"
 #include "../utils/crashlog.h"
@@ -89,7 +90,7 @@ void HandleMpvEvents()
         {
         case MPV_EVENT_FILE_LOADED:
             // Each video starts at normal full volume, independently of the last video.
-            g_currentVolume = 100;
+            g_currentVolume = (std::min)(100.0, MaximumPlayerVolume());
             if (!ApplyVideoStartDefaults(g_mpv))
                 AppendToCrashLog("[MPV]: Could not reset video to 100% volume and Fit");
             [[fallthrough]];
@@ -147,7 +148,12 @@ void HandleMpvEvents()
                     j["data"]=nullptr;
                 break;
             }
-            if (j["name"] == "volume" && g_initialSet) {
+            if (j["name"] == "volume" && j["data"].is_number() && j["data"].get<double>() > MaximumPlayerVolume()) {
+                // Enforce caps below 100 even for mpv's own keyboard bindings.
+                ApplyPlayerVolume(g_mpv, j["data"].get<double>());
+                j["data"] = MaximumPlayerVolume();
+            }
+            if (j["name"] == "volume" && g_initialSet && j["data"].is_number()) {
                 g_currentVolume = j["data"];
             }
             SendToJS("mpv-prop-change", j);
@@ -209,6 +215,14 @@ void HandleMpvCommand(const std::vector<std::string>& args)
 
 void HandleMpvSetProp(const std::vector<std::string>& args)
 {
+    if (args.size() >= 2 && args[0] == "volume") {
+        try {
+            size_t consumed = 0;
+            const double volume = std::stod(args[1], &consumed);
+            if (consumed == args[1].size()) ApplyPlayerVolume(g_mpv, volume);
+        } catch (const std::exception&) { /* Ignore invalid volume requests. */ }
+        return;
+    }
     std::thread([args](){
         if(!g_mpv || args.size()<2) return;
         std::string val=args[1];

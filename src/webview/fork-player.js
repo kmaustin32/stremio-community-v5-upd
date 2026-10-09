@@ -12,8 +12,11 @@
     let state = {mode: 'fit', active: false};
     let volume = 100;
     let muted = false;
+    let maximum = 130;
+    let pipEnabled = false;
     let scheduled = false;
     let button;
+    let pipButton;
     const appliedStyles = new WeakMap();
 
     function setStyle(element, name, value) {
@@ -28,11 +31,6 @@
     function updateVolume(player) {
         const slider = player?.querySelector('[class*="volume-slider"]');
         if (!slider) return;
-        let maximum = 130;
-        try {
-            const setting = Number(JSON.parse(localStorage.getItem('localProfile') || '{}').maxVolume);
-            if (Number.isFinite(setting) && setting > 0) maximum = setting;
-        } catch { /* Keep the hosted community player's default maximum. */ }
         const threshold = Math.min(100 / maximum * 100, 100);
         const gradient = maximum > 100 ? `linear-gradient(to right, var(--primary-foreground-color,#fff) 0%, var(--primary-foreground-color,#fff) ${threshold}%, #ffa500 ${threshold}%, #ff0000 100%)` : '';
         for (const track of slider.querySelectorAll('[class*="track-after"], [class*="Slider__track__"]')) {
@@ -45,11 +43,99 @@
         slider.setAttribute('aria-label', muted ? 'Volume muted' : `Volume ${Math.round(volume)}%`);
     }
 
-    function send(event) {
+    function send(event, args = []) {
         window.chrome.webview.postMessage(JSON.stringify({
             type: 6, object: 'transport', method: 'handleInboundJSON', id: 1001,
-            args: [event, []]
+            args: [event, args]
         }));
+    }
+
+    function applyVolumeLimit(value) {
+        const setting = Number(value);
+        if (!Number.isFinite(setting) || setting < 1 || setting > 1000) return;
+        maximum = setting;
+        send('set-volume-limit', [String(maximum)]);
+        schedule();
+    }
+
+    function updatePip(player) {
+        // The top navbar's titled button is fullscreen in every UI language.
+        const fullscreen = player?.querySelector('[class*="horizontal-nav-bar-container"] [class*="buttons-container"] > [class*="button-container"][title]:not([class*="menu-button-container"]):not(#stremio-fork-pip)');
+        if (!fullscreen || !state.active) {
+            pipButton?.remove();
+            return;
+        }
+        if (!pipButton) {
+            pipButton = fullscreen.cloneNode(true);
+            pipButton.id = 'stremio-fork-pip';
+            pipButton.removeAttribute('onclick');
+            pipButton.tabIndex = 0;
+            pipButton.setAttribute('role', 'button');
+            const svg = pipButton.querySelector('svg');
+            if (svg) {
+                svg.setAttribute('viewBox', '0 0 512 512');
+                svg.setAttribute('aria-hidden', 'true');
+                svg.innerHTML = '<rect x="100" y="126" width="312" height="260" rx="40" fill="none" stroke="currentColor" stroke-width="34"/><rect x="238" y="240" width="150" height="104" rx="16" fill="currentColor" stroke="none"/>';
+            }
+            for (const type of ['mousedown', 'dblclick'])
+                pipButton.addEventListener(type, event => event.stopPropagation());
+            pipButton.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                send('toggle-picture-in-picture');
+            });
+            pipButton.addEventListener('keydown', event => {
+                if (event.code !== 'Enter' && event.code !== 'Space') return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (!event.repeat) pipButton.click();
+            });
+        }
+        if (pipButton.className !== fullscreen.className) pipButton.className = fullscreen.className;
+        const title = pipEnabled ? 'Exit Picture-in-Picture' : 'Picture-in-Picture';
+        if (pipButton.title !== title) {
+            pipButton.title = title;
+            pipButton.setAttribute('aria-label', title);
+        }
+        const pressed = String(pipEnabled);
+        if (pipButton.getAttribute('aria-pressed') !== pressed) pipButton.setAttribute('aria-pressed', pressed);
+        if (pipButton.parentElement !== fullscreen.parentElement || pipButton.nextElementSibling !== fullscreen)
+            fullscreen.before(pipButton);
+    }
+
+    function adjustSettingsLayout() {
+        if (document.getElementById('stremio-fork-settings-layout')) return;
+        const style = document.createElement('style');
+        style.id = 'stremio-fork-settings-layout';
+        style.textContent = `
+            [class*="settings-container"] [class*="option-container"]:has(> [class*="option-name-container"]) {
+                max-width: 46rem !important;
+            }
+            [class*="settings-container"] [class*="option-container"] > [class*="option-name-container"] {
+                flex: 0 1 25rem !important; min-width: 0; margin-right: 3rem !important;
+            }
+            [class*="settings-container"] [class*="option-name-container"] [class*="label"] {
+                white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
+                overflow-wrap: anywhere; max-height: none !important;
+            }
+            [class*="settings-container"] [class*="option-container"] > [class*="option-input-container"] {
+                flex: 1 1 18rem !important; min-width: 0;
+            }
+            @media (max-width: 900px) {
+                [class*="settings-container"] [class*="option-container"] > [class*="option-name-container"] {
+                    flex-basis: 55% !important; margin-right: 2rem !important;
+                }
+            }
+            @media (max-width: 650px) {
+                [class*="settings-container"] [class*="option-container"]:has(> [class*="option-name-container"]) {
+                    flex-direction: column !important; align-items: stretch !important;
+                }
+                [class*="settings-container"] [class*="option-container"] > [class*="option-name-container"],
+                [class*="settings-container"] [class*="option-container"] > [class*="option-input-container"] {
+                    flex: none !important; width: 100%; margin-right: 0 !important;
+                }
+            }`;
+        document.head.append(style);
     }
 
     function recolorLogos() {
@@ -75,6 +161,7 @@
         recolorLogos();
         const player = document.querySelector('[class*="player-container"]');
         updateVolume(player);
+        updatePip(player);
         const controls = player?.querySelector('[class*="control-bar-buttons-menu-container"]');
         if (!controls || !state.active) {
             button?.remove();
@@ -125,6 +212,12 @@
     window.chrome.webview.addEventListener('message', event => {
         let payload;
         try { payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data; } catch { return; }
+        if (payload?.args?.[0] === 'picture-in-picture-changed') {
+            if (typeof payload.args[1]?.enabled !== 'boolean') return;
+            pipEnabled = payload.args[1].enabled;
+            schedule();
+            return;
+        }
         if (payload?.args?.[0] === 'mpv-prop-change') {
             const property = payload.args[1];
             if (property?.name === 'volume' && typeof property.data === 'number' && Number.isFinite(property.data))
@@ -142,12 +235,17 @@
     });
 
     function start() {
+        adjustSettingsLayout();
+        try { applyVolumeLimit(JSON.parse(localStorage.getItem('localProfile') || '{}').maxVolume ?? 130); }
+        catch { applyVolumeLimit(130); }
         const observer = new MutationObserver(schedule);
         observer.observe(document.documentElement, {subtree: true, childList: true, attributes: true,
             attributeFilter: ['class', 'src', 'href', 'style']});
         schedule();
         send('get-display-mode');
+        send('get-picture-in-picture');
     }
+    window.addEventListener('stremio-fork-volume-limit', event => applyVolumeLimit(event.detail));
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true});
     else start();
 })();

@@ -20,7 +20,7 @@ bool IsCommunityPlayerScript(const std::string& url)
 
 bool PatchPlayerAutoplay(std::string& script, std::string& error)
 {
-    constexpr const char* marker = "/* StremioForkAutoplayGuard */";
+    constexpr const char* marker = "/* StremioForkPlayerCompatibility */";
     if (script.ends_with(marker)) return true;
     // Limit regex matching to the callback: std::regex on a whole webpack bundle
     // can overflow its stack. Identifier captures support upstream minifier changes.
@@ -83,10 +83,71 @@ bool PatchPlayerAutoplay(std::string& script, std::string& error)
     struct Edit { size_t pos, length; std::string text; };
     std::vector<Edit> edits = {{position, length, replacement},
         {effectStart + static_cast<size_t>(effect.position()), static_cast<size_t>(effect.length()), effectReplacement}};
+    // The upstream callback captures the first storage object forever. Recreate
+    // it when maxVolume changes, so dragging and keyboard volume use the same cap.
+    const std::regex volumeCallback(R"(\.useCallback\(function\(([\w$]+)\)\{([\w$]+)\.setProp\("volume",Math\.min\(\1,Number\(([\w$]+)\.maxVolume\)\)\)\},\[\]\))");
+    size_t volumeMatches = 0;
+    std::string volumeHandler;
+    cursor = 0;
+    while ((cursor = script.find(".maxVolume", cursor)) != std::string::npos) {
+        const auto start = script.rfind(".useCallback(function(", cursor);
+        if (start != std::string::npos && cursor - start < 256) {
+            const auto candidate = script.substr(start, 512);
+            std::smatch match;
+            if (std::regex_search(candidate, match, volumeCallback)) {
+                auto text = match.str();
+                text.replace(text.size() - 3, 2, "[" + match[3].str() + ".maxVolume]");
+                edits.push_back({start + static_cast<size_t>(match.position()), static_cast<size_t>(match.length()), text});
+                const auto equals = script.rfind('=', start);
+                if (equals == std::string::npos || start - equals > 64) {
+                    error = "Missing volume callback reference";
+                    return false;
+                }
+                auto nameStart = equals;
+                while (nameStart && (std::isalnum(static_cast<unsigned char>(script[nameStart - 1])) ||
+                        script[nameStart - 1] == '_' || script[nameStart - 1] == '$')) --nameStart;
+                volumeHandler = script.substr(nameStart, equals - nameStart);
+                ++volumeMatches;
+            }
+        }
+        ++cursor;
+    }
+    // Keyboard and wheel listeners also capture the callback. Refresh these
+    // while paused, even when no time/volume event would recreate the listeners.
+    const auto wheelCleanup = script.find("window.removeEventListener(\"wheel\"");
+    const std::regex keyboard(R"(window\.removeEventListener\("wheel",([\w$]+)\)\}\},\[([^\]]+)\]\))");
+    std::smatch keyboardMatch;
+    const auto keyboardCandidate = wheelCleanup == std::string::npos ? std::string{} : script.substr(wheelCleanup, 2048);
+    if (volumeHandler.empty() || !std::regex_search(keyboardCandidate, keyboardMatch, keyboard)) {
+        error = "Unsupported community player keyboard volume handler";
+        return false;
+    }
+    auto keyboardReplacement = keyboardMatch.str();
+    keyboardReplacement.insert(keyboardReplacement.size() - 2, "," + volumeHandler);
+    edits.push_back({wheelCleanup + static_cast<size_t>(keyboardMatch.position()), static_cast<size_t>(keyboardMatch.length()), keyboardReplacement});
+    // StorageProvider is the live source of settings, including same-tab changes.
+    // Notify the injected controls on every update instead of polling localStorage.
+    const std::regex storage(R"(localStorage\.setItem\("localProfile",JSON\.stringify\(([\w$]+)\)\))");
+    size_t storageMatches = 0;
+    cursor = 0;
+    while ((cursor = script.find("localStorage.setItem(\"localProfile\"", cursor)) != std::string::npos) {
+        const auto candidate = script.substr(cursor, 256);
+        std::smatch match;
+        if (std::regex_search(candidate, match, storage)) {
+            edits.push_back({cursor + static_cast<size_t>(match.position()), static_cast<size_t>(match.length()),
+                match.str() + ",window.dispatchEvent(new CustomEvent(\"stremio-fork-volume-limit\",{detail:Number(" + match[1].str() + ".maxVolume)}))"});
+            ++storageMatches;
+        }
+        ++cursor;
+    }
+    if (volumeMatches != 1 || storageMatches != 1) {
+        error = "Unsupported community player maximum-volume settings";
+        return false;
+    }
     std::sort(edits.begin(), edits.end(), [](const Edit& a, const Edit& b) { return a.pos > b.pos; });
     // Preserve ended() and history.back(), and leave manual Next unchanged.
     for (const auto& edit : edits) script.replace(edit.pos, edit.length, edit.text);
-    script += "\n;window.__stremioForkAutoplayPatched=true;";
+    script += "\n;window.__stremioForkAutoplayPatched=true;window.__stremioForkVolumePatched=true;";
     script += marker;
     return true;
 }
