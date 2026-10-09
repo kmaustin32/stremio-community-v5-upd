@@ -35,7 +35,7 @@ void CheckPage(HWND window)
 {
     if (!webview || checking) return;
     checking = true;
-    webview->ExecuteScript(L"JSON.stringify({patched:window.__stremioForkAutoplayPatched===true&&window.__stremioForkVolumePatched===true,maximum:Number(JSON.parse(localStorage.getItem('localProfile')||'{}').maxVolume||130),ready:window.__forkSwReady===true})",
+    webview->ExecuteScript(L"JSON.stringify({patched:window.__stremioForkAutoplayPatched===true&&window.__stremioForkVolumePatched===true&&window.__stremioForkEpisodeBlurPatched===true,maximum:Number(JSON.parse(localStorage.getItem('localProfile')||'{}').maxVolume||130),ready:window.__forkSwReady===true})",
         Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptCompletedHandler>([window](HRESULT result, LPCWSTR value) -> HRESULT {
             checking = false;
             const std::wstring json = value ? value : L"";

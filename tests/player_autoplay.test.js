@@ -104,12 +104,29 @@ test('Live community player respects autoplay without losing completion or manua
     const keyboardPattern = /window\.removeEventListener\("wheel",[\w$]+\)\}\},\[([^\]]+)\]\)/;
     const patchedKeyboard = script.match(keyboardPattern);
     assert.ok(patchedKeyboard[1].endsWith(',' + binding), 'Keyboard and wheel refresh with the new volume callback');
-    // Only five targeted replacements and the marker change the upstream bundle.
+    function episodeSources(bundle) {
+        const context = {window: {}};
+        const anchor = '(()=>{var e;o.g.importScripts';
+        assert.ok(bundle.includes(anchor));
+        vm.runInNewContext(bundle.replace(anchor, 'window.episodeModules=a;return;' + anchor), context);
+        const sources = Object.values(context.window.episodeModules).map(factory => factory.toString());
+        return sources.filter(source => source.includes('.blurred') && source.includes('renderFallback'));
+    }
+    const oldEpisodes = episodeSources(original), newEpisodes = episodeSources(script);
+    assert.equal(oldEpisodes.length, 2);
+    assert.equal(newEpisodes.length, 2);
+    assert.ok(script.includes('window.__stremioForkEpisodeBlurPatched=true'));
+    let restored = script;
+    for (let i = 0; i < 2; i++) {
+        assert.notEqual(newEpisodes[i], oldEpisodes[i]);
+        restored = restored.replace(newEpisodes[i], oldEpisodes[i]);
+    }
+    // Only the targeted player handlers, episode components, and marker change.
     const originalTarget = original.match(/\.useCallback\((function\(\)\{[^{}]*window\.history\.back\(\)[^{}]*\}),\[([^\]]+)\]\)/);
     const originalPopup = original.match(/\.useEffect\((function\(\)\{[^{}]*\.bingeWatching[^{}]*\}),\[([^\]]+)\]\)/);
     const originalVolume = original.match(/\.useCallback\(function\([\w$]+\)\{[\w$]+\.setProp\("volume",Math\.min\([\w$]+,Number\([\w$]+\.maxVolume\)\)\)\},\[\]\)/);
-    assert.equal(script.replace(target[0], originalTarget[0]).replace(popup[0], originalPopup[0])
+    assert.equal(restored.replace(target[0], originalTarget[0]).replace(popup[0], originalPopup[0])
         .replace(volume[0], originalVolume[0]).replace(storagePatched, storageOriginal[0])
         .replace(patchedKeyboard[0], original.match(keyboardPattern)[0])
-        .replace('\n;window.__stremioForkAutoplayPatched=true;window.__stremioForkVolumePatched=true;/* StremioForkPlayerCompatibility */', ''), original);
+        .replace('\n;window.__stremioForkAutoplayPatched=true;window.__stremioForkVolumePatched=true;window.__stremioForkEpisodeBlurPatched=true;/* StremioForkPlayerCompatibilityV2 */', ''), original);
 });

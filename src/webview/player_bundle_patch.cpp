@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cctype>
 #include <regex>
+#include <utility>
 #include <vector>
 
 bool IsCommunityPlayerScript(const std::string& url)
@@ -18,9 +19,68 @@ bool IsCommunityPlayerScript(const std::string& url)
     return false;
 }
 
+bool PatchEpisodeSpoilerBlur(std::string& script, std::string& error)
+{
+    struct Edit { size_t pos, length; std::string text; };
+    std::vector<Edit> edits;
+    // Copy the primary image's conditional class expression to its alternate.
+    // Both episode lists share Video; NextVideoPopup has the same fallback bug.
+    const std::regex image(R"(className:(([\w$]+)\(([\w$]+)(\.thumbnail|\["poster-image"\]),([\w$]+)\(\{\},\3\.blurred,([\w$]+)\)\)),src:([^{};]+),renderFallback:function\(\)\{return ([\w$]+)\.createElement\(([\w$]+),\{className:\3\4,)");
+    const std::regex condition(R"(([\w$]+)\.settings\.hideSpoilers&&([\w$]+)&&([\w$]+)&&!([\w$]+))");
+    const std::regex labelEnd(R"(\}\},\[\]\),[\w$]+=[\w$]+\.useMemo\(function\(\)\{return function\(\)\{)");
+    size_t cursor = 0, thumbnails = 0, posters = 0;
+    while ((cursor = script.find(".blurred,", cursor)) != std::string::npos) {
+        const auto start = script.rfind("className:", cursor);
+        if (start != std::string::npos && cursor - start < 256) {
+            const auto candidate = script.substr(start, 1024);
+            std::smatch match;
+            if (std::regex_search(candidate, match, image)) {
+                const auto originalClass = "className:" + match[3].str() + match[4].str() + ",";
+                const auto classPos = match.str().rfind(originalClass);
+                if (classPos == std::string::npos) { error = "Missing alternate image class"; return false; }
+                edits.push_back({start + static_cast<size_t>(match.position()) + classPos + 10,
+                    static_cast<size_t>(match[3].length() + match[4].length()), match[1].str()});
+                if (match[4].str() == ".thumbnail") {
+                    ++thumbnails;
+                    const auto setting = script.rfind(".settings.hideSpoilers&&", start);
+                    if (setting == std::string::npos || start - setting > 1024) {
+                        error = "Missing episode spoiler setting"; return false;
+                    }
+                    auto settingStart = setting;
+                    while (settingStart && (std::isalnum(static_cast<unsigned char>(script[settingStart - 1])) ||
+                            script[settingStart - 1] == '_' || script[settingStart - 1] == '$')) --settingStart;
+                    const auto conditionCandidate = script.substr(settingStart, 256);
+                    std::smatch blur;
+                    if (!std::regex_search(conditionCandidate, blur, condition) || blur.position() != 0) {
+                        error = "Unsupported episode spoiler condition"; return false;
+                    }
+                    edits.push_back({settingStart, static_cast<size_t>(blur.length()),
+                        blur[1].str() + ".settings.hideSpoilers&&Number.isFinite(" + blur[2].str() +
+                        ")&&Number.isFinite(" + blur[3].str() + ")&&!" + blur[4].str()});
+                    // A frozen renderLabel otherwise keeps an old setting/season.
+                    const auto end = script.find("}},[])", start);
+                    const auto endCandidate = end == std::string::npos ? std::string{} : script.substr(end, 256);
+                    std::smatch label;
+                    if (end == std::string::npos || end - start > 8192 || !std::regex_search(endCandidate, label, labelEnd) || label.position() != 0) {
+                        error = "Unsupported episode label dependencies"; return false;
+                    }
+                    edits.push_back({end + 3, 2, "[" + blur[1].str() + ".settings.hideSpoilers," + blur[2].str() + "]"});
+                } else ++posters;
+            }
+        }
+        ++cursor;
+    }
+    if (thumbnails != 1 || posters != 1) {
+        error = "Unsupported episode image fallback handlers"; return false;
+    }
+    std::sort(edits.begin(), edits.end(), [](const Edit& a, const Edit& b) { return a.pos > b.pos; });
+    for (const auto& edit : edits) script.replace(edit.pos, edit.length, edit.text);
+    return true;
+}
+
 bool PatchPlayerAutoplay(std::string& script, std::string& error)
 {
-    constexpr const char* marker = "/* StremioForkPlayerCompatibility */";
+    constexpr const char* marker = "/* StremioForkPlayerCompatibilityV2 */";
     if (script.ends_with(marker)) return true;
     // Limit regex matching to the callback: std::regex on a whole webpack bundle
     // can overflow its stack. Identifier captures support upstream minifier changes.
@@ -146,8 +206,11 @@ bool PatchPlayerAutoplay(std::string& script, std::string& error)
     }
     std::sort(edits.begin(), edits.end(), [](const Edit& a, const Edit& b) { return a.pos > b.pos; });
     // Preserve ended() and history.back(), and leave manual Next unchanged.
-    for (const auto& edit : edits) script.replace(edit.pos, edit.length, edit.text);
-    script += "\n;window.__stremioForkAutoplayPatched=true;window.__stremioForkVolumePatched=true;";
-    script += marker;
+    auto result = script;
+    for (const auto& edit : edits) result.replace(edit.pos, edit.length, edit.text);
+    if (!PatchEpisodeSpoilerBlur(result, error)) return false;
+    result += "\n;window.__stremioForkAutoplayPatched=true;window.__stremioForkVolumePatched=true;window.__stremioForkEpisodeBlurPatched=true;";
+    result += marker;
+    script = std::move(result);
     return true;
 }

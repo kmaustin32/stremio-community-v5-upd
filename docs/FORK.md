@@ -89,6 +89,16 @@ web player's CacheStorage before loading the UI. A patch fingerprint records
 the migration; later launches reuse the refreshed cache. Local settings,
 cookies, login storage and player configuration are preserved.
 
+**Blur unwatched episodes image** protects alternate thumbnails as well as
+primary images, in both the show page and the player's episode panel. This
+includes anime that fall back from season-based to absolute episode numbering,
+such as Inuyasha seasons after 2. The next-episode popup also keeps blur when
+using an alternate image. Watched episodes remain clear in the episode lists;
+marking one unwatched or changing the blur setting refreshes the image immediately.
+Numbered specials (season or episode 0) are protected too. Non-episodic artwork
+and generic placeholders keep their existing behavior. The fix preserves watch
+history and uses the upstream setting and watched flags.
+
 The native app, splash, installer/uninstaller, web UI branding, return button,
 and default Discord logo use **#7272c2**. The original logo silhouettes, white
 play symbols, transparency and wordmark lettering are retained. Movie artwork,

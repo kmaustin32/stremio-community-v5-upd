@@ -1,7 +1,11 @@
-**Install this fork:** [Stremio-5.0.22-mpv.5-x64.exe](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.5/Stremio-5.0.22-mpv.5-x64.exe),
-or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.5/Stremio-5.0.22-mpv.5-x64.zip).
+**Install this fork:** [Stremio-5.0.22-mpv.6-x64.exe](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.6/Stremio-5.0.22-mpv.6-x64.exe),
+or use the [portable ZIP](https://github.com/kmaustin32/stremio-community-v5-upd/releases/download/v5.0.22-mpv.6/Stremio-5.0.22-mpv.6-x64.zip).
 Files beginning **BUILD-ONLY** are source build dependencies, not this fork's installer.
 Installing the original community dependency gives the original green icon and omits the fork features.
+
+- Fixed unwatched-thumbnail blur when the primary image fails and the alternate anime image loads, including Inuyasha seasons after 2. Both the show page and player episode panel retain blur, as does the next-episode popup.
+- The blur setting updates existing episode cards immediately; watched/unwatched changes keep working. Numbered specials (season or episode 0) are also protected.
+- Watch history is preserved. On upgrade, the hosted UI script cache refreshes once so existing installations receive the fix.
 
 - Auto play next episode now respects its setting when a video ends and cancels open countdowns when disabled; completion and manual Next remain available.
 - Changing Maximum Volume now rescales the slider and updates actual mpv amplification immediately, including 150–225% above the previous 130% cap. Lower limits clamp current playback. Keyboard and wheel controls also use the live setting.
@@ -30,7 +34,7 @@ an existing system Vulkan runtime.
 - Automatic upstream binary updates are disabled to preserve fork features.
 - Upstream source updates can be merged into the fork; see the included README-fork.md.
 
-Download **Stremio-5.0.22-mpv.5-x64.exe** for installation, or the **.zip** for
+Download **Stremio-5.0.22-mpv.6-x64.exe** for installation, or the **.zip** for
 portable use with an installed WebView2 runtime. SHA256SUMS.txt verifies these
 downloads. The remaining archives preserve build dependencies and are not
 needed to run the application. `stremio-icon.png` is the public Discord branding asset.
@@ -38,7 +42,8 @@ needed to run the application. `stremio-icon.png` is the public Discord branding
 GitHub Actions builds the application and runs configuration, toggle,
 persistence, restart, keyboard, streaming, transcoding, native display geometry,
 embedded D3D11 rendering at two sizes, Edge player controls, real community slider dragging,
-responsive settings layout, live autoplay and max-volume behavior,
+responsive settings layout, real episode-image failures and alternate thumbnails,
+watched/unwatched and blur-setting transitions, live autoplay and max-volume behavior,
 and native WebView2 cached-upgrade and reload tests before publishing.
 The build is unsigned. Hardware-specific playback and HDR require testing on
 the target machine.
